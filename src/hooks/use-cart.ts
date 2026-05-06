@@ -1,85 +1,155 @@
-import { useState } from "react";
-import { useShallow } from 'zustand/shallow';
-import { useCartStore } from '@/stores/useCartStore';
-import type { CartState } from '@/stores/useCartStore';
-import { Product, VariationOption } from "@/services/types";
-import { constructCartItem } from "@/utils/construct-cart-item";
-import { Item } from "@/services/utils/cartUtils";
+import { useCallback, useMemo, useState } from 'react';
+import { Product, VariationOption } from '@/services/types';
+import { constructCartItem } from '@/utils/construct-cart-item';
+import {
+    useGetCartQuery,
+    useAddCartItemMutation,
+    useUpdateCartItemMutation,
+    useDeleteCartItemMutation,
+    useDeleteCartMutation,
+    type CartItem,
+} from '@/store/cartApi';
 
+export type Item = CartItem;
+
+/**
+ * Server-backed cart hook. Replaces the previous zustand + localStorage
+ * implementation; data is fetched via RTK Query (`/api/v1/cart`) and
+ * mutations are sent through the cart endpoints, so the source of truth
+ * lives on the backend.
+ */
 export const useCart = () => {
-    const cartStore = useCartStore(
-        useShallow((state: CartState) => ({
-            items: state.items,
-            isEmpty: state.isEmpty,
-            totalItems: state.totalItems,
-            totalUniqueItems: state.totalUniqueItems,
-            total: state.total,
-            addItemWithQuantity: state.addItemWithQuantity,
-            removeItemOrQuantity: state.removeItemOrQuantity,
-            addItem: state.addItem,
-            updateItem: state.updateItem,
-            removeItem: state.removeItem,
-            resetCart: state.resetCart,
-        }))
+    const { data: cart } = useGetCartQuery();
+    const [addCartItem] = useAddCartItemMutation();
+    const [updateCartItem] = useUpdateCartItemMutation();
+    const [deleteCartItem] = useDeleteCartItemMutation();
+    const [deleteCart] = useDeleteCartMutation();
+
+    const items: CartItem[] = cart?.items ?? [];
+
+    const totalItems = useMemo(
+        () => items.reduce((sum, i) => sum + (i.quantity ?? 0), 0),
+        [items],
+    );
+    const totalUniqueItems = items.length;
+    const total = useMemo(() => {
+        if (typeof cart?.total === 'number') return cart.total;
+        return items.reduce(
+            (sum, i) => sum + (i.price ?? 0) * (i.quantity ?? 0),
+            0,
+        );
+    }, [cart?.total, items]);
+    const isEmpty = totalUniqueItems === 0;
+
+    const addItemWithQuantity = useCallback(
+        async (item: Partial<CartItem>, quantity: number) => {
+            if (quantity <= 0) {
+                throw new Error("cartQuantity can't be zero or less than zero");
+            }
+            const productId = (item.productId ?? item.id) as string | number;
+            return addCartItem({ productId, quantity }).unwrap();
+        },
+        [addCartItem],
     );
 
-    const useCartActions = (data?: Item | Product, selectedVariation?: VariationOption, selectedQuantity: number = 1) => {
-        const { addItemWithQuantity } = cartStore;
-        const [addToCartLoader, setAddToCartLoader] = useState<boolean>(false);
+    const updateItem = useCallback(
+        async (
+            id: CartItem['id'],
+            payload: Partial<CartItem> & { quantity?: number },
+        ) => {
+            if (typeof payload.quantity !== 'number') return;
+            return updateCartItem({
+                cartItemId: id,
+                data: { quantity: payload.quantity },
+            }).unwrap();
+        },
+        [updateCartItem],
+    );
+
+    const removeItem = useCallback(
+        async (id: CartItem['id']) => deleteCartItem(id).unwrap(),
+        [deleteCartItem],
+    );
+
+    const resetCart = useCallback(async () => {
+        await deleteCart().unwrap();
+    }, [deleteCart]);
+
+    const useCartHelpers = () => {
+        const isInCart = useCallback(
+            (productId: string | number) =>
+                items.some(
+                    (i) =>
+                        (i.productId ?? i.id) === productId || i.id === productId,
+                ),
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            [items],
+        );
+
+        const getItemFromCart = useCallback(
+            (productId: string | number) =>
+                items.find(
+                    (i) =>
+                        (i.productId ?? i.id) === productId || i.id === productId,
+                ),
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            [items],
+        );
+
+        const isInStock = (productId: string | number) => {
+            const cartItem = getItemFromCart(productId);
+            if (cartItem && cartItem.stock !== undefined) {
+                return (cartItem.quantity ?? 0) < cartItem.stock;
+            }
+            return true;
+        };
+
+        const outOfStock = (productId: string | number) =>
+            isInCart(productId) && !isInStock(productId);
+
+        return { isInCart, getItemFromCart, isInStock, outOfStock };
+    };
+
+    const useCartActions = (
+        data?: CartItem | Product,
+        selectedVariation?: VariationOption,
+        selectedQuantity: number = 1,
+    ) => {
+        const [addToCartLoader, setAddToCartLoader] = useState(false);
 
         const addToCart = async () => {
             if (!data) return;
             setAddToCartLoader(true);
             try {
-                const item = constructCartItem(data, selectedVariation!);
+                const item = constructCartItem(
+                    data as Product,
+                    selectedVariation as VariationOption,
+                );
                 await addItemWithQuantity(item, selectedQuantity);
             } catch (error) {
-                console.error("Failed to add item to cart:", error);
+                console.error('Failed to add item to cart:', error);
             } finally {
-                setTimeout(() => {
-                    setAddToCartLoader(false);
-                }, 1000);
+                setTimeout(() => setAddToCartLoader(false), 500);
             }
         };
 
-        return {
-            addToCart,
-            addToCartLoader,
-        };
-    };
-
-    const useCartHelpers = () => {
-        const store = useCartStore();
-
-        const isInCart = (productId: string | number) => {
-            return store.items.some((item) => item.id === productId);
-        };
-
-        const getItemFromCart = (productId: string | number) => {
-            return store.items.find((item) => item.id === productId);
-        };
-
-        const isInStock = (productId: string | number) => {
-            const cartItem = getItemFromCart(productId);
-            if (cartItem && cartItem.stock !== undefined) {
-                return cartItem.quantity! < cartItem.stock;
-            }
-            return true; // if no stock information, assume in stock
-        };
-
-        const outOfStock = (productId: string | number) => isInCart(productId) && !isInStock(productId);
-
-        return {
-            isInCart,
-            getItemFromCart,
-            isInStock,
-            outOfStock,
-        };
+        return { addToCart, addToCartLoader };
     };
 
     return {
-        ...cartStore,
+        items,
+        total,
+        totalItems,
+        totalUniqueItems,
+        isEmpty,
+        addItemWithQuantity,
+        updateItem,
+        removeItem,
+        resetCart,
         useCartHelpers,
         useCartActions,
+        // Aliased forms used in older callsites.
+        addItem: addItemWithQuantity,
+        removeItemOrQuantity: removeItem,
     };
 };

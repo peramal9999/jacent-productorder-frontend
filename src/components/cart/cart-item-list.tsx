@@ -1,7 +1,7 @@
 'use client'
 import { CartItem } from "./cart-item"
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/shared/table"
-import {Item} from "@/services/utils/cartUtils";
+import { type Item } from "@/hooks/use-cart";
 
 interface CartItemListProps {
 	items: Item[]

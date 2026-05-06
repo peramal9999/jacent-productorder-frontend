@@ -1,13 +1,11 @@
 'use client'
 import { TableCell, TableRow } from "@/components/shared/table"
-import { useCart } from '@/hooks/use-cart';
+import { useCart, type Item } from '@/hooks/use-cart';
 import usePrice from "@/services/product/use-price";
 import QuantityInput from "@/components/shared/quantity-input";
 import {ROUTES} from "@/utils/routes";
 import Link from "@/components/shared/link";
 import Image from '@/components/shared/image';
-import {Item} from "@/services/utils/cartUtils";
-import {useCartStore} from "@/stores/useCartStore";
 
 interface CartItemProps {
 	item: Item
@@ -16,12 +14,11 @@ interface CartItemProps {
 export function CartItem({ item }: CartItemProps) {
 	const {id,name, image, quantity, slug, product_type} = item ?? {};
 
-    // Use new hooks
 	const {
 		removeItem,
+		updateItem,
 		useCartHelpers
 	} = useCart();
-	const updateItem = useCartStore((s) => s.updateItem);
 	
 	const {price, basePrice} = usePrice({
 		amount: item?.sale_price ? item?.sale_price : item?.price,
@@ -30,11 +27,11 @@ export function CartItem({ item }: CartItemProps) {
 	});
 	
 	const {price: minPrice} = usePrice({
-		amount: item?.min_price ?? 0,
+		amount: (item?.min_price as number) ?? 0,
 		currencyCode: 'USD',
 	});
 	const {price: maxPrice} = usePrice({
-		amount: item?.max_price ?? 0,
+		amount: (item?.max_price as number) ?? 0,
 		currencyCode: 'USD',
 	});
 	
@@ -56,7 +53,7 @@ export function CartItem({ item }: CartItemProps) {
                     className="block leading-5 transition-all text-brand-dark text-sm lg:text-15px hover:text-brand"
                     >
                         <Image
-						src={image}
+						src={image ?? ''}
 						width={80}
 						height={80}
 						alt={name || 'Product Image'}

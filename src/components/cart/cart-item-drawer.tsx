@@ -5,20 +5,19 @@ import { useCart } from '@/hooks/use-cart';
 import usePrice from '@/services/product/use-price';
 import {ROUTES} from '@/utils/routes';
 import QuantityInput from '@/components/shared/quantity-input';
-import {Item} from "@/services/utils/cartUtils";
-import {useCartStore} from "@/stores/useCartStore";
+import { type Item } from "@/hooks/use-cart";
 
 type CartItemProps = {
     item: Item;
 };
 
 const CartItemDrawer: React.FC<CartItemProps> = ({item}) => {
-    
+
     const {
         removeItem,
+        updateItem,
         useCartHelpers
     } = useCart();
-    const updateItem = useCartStore((s) => s.updateItem);
 
     const unitAmount = item?.sale_price ?? item?.price ?? 0;
     const {price: totalPrice} = usePrice({
@@ -38,7 +37,7 @@ const CartItemDrawer: React.FC<CartItemProps> = ({item}) => {
                     className="block leading-5 transition-all text-brand-dark text-sm lg:text-15px hover:text-brand"
                 >
                     <Image
-                        src={item?.image}
+                        src={item?.image ?? ''}
                         width={80}
                         height={80}
                         alt={item.name || 'Product Image'}

@@ -4,7 +4,7 @@ import React, {useState} from "react";
 import TopBar from "@/components/category/top-bar";
 import DrawerFilter from "@/components/category/drawer-filter";
 import {LIMITS} from "@/services/utils/limits";
-import {useProductsQuery} from "@/services/product/get-all-products";
+import {useGetAllProductsQuery} from "@/store/productsApi";
 import {usePathname} from "next/navigation";
 import useQueryParam from "@/utils/use-query-params";
 import {ProductMain} from "@/components/product/productListing/product-main";
@@ -16,12 +16,13 @@ export default function CanvasContent() {
 	const newQuery: { sort_by?: string } = getParams(
 		`${process.env.NEXT_PUBLIC_WEBSITE_URL}${query}`,
 	);
-	// Get category query parameters
+	void newQuery;
 	const limit = LIMITS.PRODUCTS_LIMITS;
-	const { data, isLoading } = useProductsQuery({
-		limit: limit,
-		sort_by: newQuery.sort_by,
+	const { data: page, isLoading } = useGetAllProductsQuery({
+		pageNo: 0,
+		pageSize: limit,
 	});
+	const data = page?.content;
 	
 	
 	return (
