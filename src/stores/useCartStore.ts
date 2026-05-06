@@ -93,7 +93,9 @@ export const useCartStore = create<CartState>()(
                     }
                     if (state && state.items) {
                         const items = state.items || [];
+                        state.items = calculateItemTotals(items);
                         state.totalItems = calculateTotalItems(items);
+                        state.totalUniqueItems = calculateUniqueItems(items);
                         state.total = calculateTotal(items);
                         state.isEmpty = items.length === 0;
                     }
