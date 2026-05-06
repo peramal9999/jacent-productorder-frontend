@@ -14,6 +14,8 @@ import {useCartStore} from '@/stores/useCartStore';
 import React from 'react';
 import Loading from "@/components/shared/loading";
 
+const MIN_ORDER_AMOUNT = 250;
+
 const CheckoutCard: React.FC = () => {
     const router = useRouter();
 
@@ -24,9 +26,15 @@ const CheckoutCard: React.FC = () => {
         amount: total,
         currencyCode: 'USD',
     });
+    const isBelowMinimum = total < MIN_ORDER_AMOUNT;
+    const amountRemaining = MIN_ORDER_AMOUNT - total;
+    const {price: amountRemainingFormatted} = usePrice({
+        amount: amountRemaining > 0 ? amountRemaining : 0,
+        currencyCode: 'USD',
+    });
 
     function orderHeader() {
-        if (isEmpty) return;
+        if (isEmpty || isBelowMinimum) return;
         // Record the order in past-orders history so it shows up in /account-order
         // and can be reordered later. Keep the existing confirmation flow.
         placeOrder(items, total);
@@ -88,6 +96,7 @@ const CheckoutCard: React.FC = () => {
                         
                         <Button
                             variant="dark"
+                            disabled={isBelowMinimum}
                             className={cn(
                                 'w-full mt-8  uppercase  px-4 py-3 transition-all',
                             )}
@@ -95,6 +104,11 @@ const CheckoutCard: React.FC = () => {
                         >
                             Order Now
                         </Button>
+                        {isBelowMinimum && (
+                            <p className="mt-3 text-sm text-red-600 text-center">
+                                Minimum order amount is $250. Please add {amountRemainingFormatted} more to place your order.
+                            </p>
+                        )}
                     </>
                 )}
             
