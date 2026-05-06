@@ -1,5 +1,5 @@
 'use client';
-import {Item} from "@/services/utils/cartUtils";
+import { type Item } from "@/hooks/use-cart";
 import Image from '@/components/shared/image';
 import usePrice from '@/services/product/use-price';
 import React from "react";
@@ -15,7 +15,7 @@ export const CheckoutItem: React.FC<{ item: Item }> = ({ item }) => {
     <div className="flex items-center">
       <div className="flex w-16 h-16 border rounded-md border-border-base shrink-0">
         <Image
-          src={item.image}
+          src={item.image ?? ''}
           alt={'item image'}
           className="rounded-md"
           width={64}

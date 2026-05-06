@@ -10,7 +10,6 @@ import {useRouter} from 'next/navigation';
 import {ROUTES} from '@/utils/routes';
 import {useIsMounted} from '@/utils/use-is-mounted';
 import {useOrderStore} from '@/stores/useOrderStore';
-import {useCartStore} from '@/stores/useCartStore';
 import React from 'react';
 import Loading from "@/components/shared/loading";
 
@@ -19,9 +18,8 @@ const MIN_ORDER_AMOUNT = 250;
 const CheckoutCard: React.FC = () => {
     const router = useRouter();
 
-    const {items, total, isEmpty} = useCart();
+    const {items, total, isEmpty, resetCart} = useCart();
     const placeOrder = useOrderStore((s) => s.placeOrder);
-    const resetCart = useCartStore((s) => s.resetCart);
     const {price: subtotal} = usePrice({
         amount: total,
         currencyCode: 'USD',
@@ -33,12 +31,16 @@ const CheckoutCard: React.FC = () => {
         currencyCode: 'USD',
     });
 
-    function orderHeader() {
+    async function orderHeader() {
         if (isEmpty || isBelowMinimum) return;
         // Record the order in past-orders history so it shows up in /account-order
         // and can be reordered later. Keep the existing confirmation flow.
-        placeOrder(items, total);
-        resetCart();
+        placeOrder(items as any, total);
+        try {
+            await resetCart();
+        } catch (e) {
+            console.error('Failed to clear server cart:', e);
+        }
         router.push(ROUTES.ORDER as any);
     }
     
