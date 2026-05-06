@@ -20,8 +20,9 @@ const CartItemDrawer: React.FC<CartItemProps> = ({item}) => {
     } = useCart();
     const updateItem = useCartStore((s) => s.updateItem);
 
+    const unitAmount = item?.sale_price ?? item?.price ?? 0;
     const {price: totalPrice} = usePrice({
-        amount: item?.itemTotal,
+        amount: unitAmount * (item?.quantity ?? 0),
         currencyCode: 'USD',
     });
     const { isInStock, isInCart } = useCartHelpers(); // Get helpers

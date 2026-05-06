@@ -38,8 +38,9 @@ export function CartItem({ item }: CartItemProps) {
 		currencyCode: 'USD',
 	});
 	
+	const unitAmount = item?.sale_price ?? item?.price ?? 0;
 	const {price: totalPrice} = usePrice({
-		amount: item?.itemTotal,
+		amount: unitAmount * (quantity ?? 0),
 		currencyCode: 'USD',
 	});
 	
