@@ -8,7 +8,6 @@ import Container from '@/components/shared/container';
 import Logo from '@/components/shared/logo';
 import Text from '@/components/shared/text';
 import MenuIcon from '@/components/icons/menu-icon';
-import Search from '@/components/top-search/search';
 import cn from 'classnames';
 
 import MainMenu from '@/layouts/header/main-menu';
@@ -28,7 +27,7 @@ interface HeaderProps {
     variant?: string;
 }
 const Header: React.FC<HeaderProps> = ({className, variant}) => {
-    const {openSidebar, displaySearch, displayMobileSearch} = useUI();
+    const {openSidebar, displayMobileSearch} = useUI();
 
     function handleMobileMenu() {
         return openSidebar();
@@ -67,10 +66,6 @@ const Header: React.FC<HeaderProps> = ({className, variant}) => {
                     "z-20 w-full body-font",
                     {'bg-fill-one text-brand-light': variant === 'home5' ,}
                 )}>
-                    <Search
-                        searchId="mobile-search"
-                        className="topbar-search hidden lg:max-w-[600px] absolute z-30 px-4 md:px-6 top-12 xl:top-1"
-                    />
                     <div className="border-b border-brand-light/8">
                         <Container>
                             <div className="flex items-center justify-between gap-4 py-1">
@@ -88,26 +83,13 @@ const Header: React.FC<HeaderProps> = ({className, variant}) => {
                                     className="logo ps-3 md:ps-0 lg:mx-0 flex-shrink-0"
                                 />
 
-                                {/* Search column: search input on top, primary
-                                    nav (All Categories / Past Orders) docked
-                                    right beneath it. */}
                                 <div className="hidden lg:flex flex-col flex-1 max-w-[450px] xl:max-w-[650px] 2xl:max-w-[900px] mx-6 xl:mx-10">
-                                    <Search
-                                        searchId="top-search"
-                                        variant={"dark"}
-                                        className="w-full"
-                                    />
                                     <div className="navbar mt-1 relative">
                                         <div className="flex justify-start items-center pl-2">
                                             <MainMenu
                                                 navigations={siteNavigation.menu as MainMenuType[]}
                                                 className="flex"
                                             />
-                                            {displaySearch && (
-                                                <div className="sticky-search w-full absolute top-0 left-0 px-4 flex items-center justify-center h-full">
-                                                    <Search className="max-w-[780px] xl:max-w-[830px]" />
-                                                </div>
-                                            )}
                                         </div>
                                     </div>
                                 </div>

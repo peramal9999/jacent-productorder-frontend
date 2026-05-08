@@ -11,8 +11,6 @@ import { useGetProductsPageQuery } from '@/store/productsApi';
 import { usePathname } from 'next/navigation';
 import useQueryParam from '@/utils/use-query-params';
 import { useFilterStore, getSelectedCategoryIds } from '@/stores/useFilterStore';
-import CategoryBanner from '@/components/category/category-banner';
-import { getBannerForSelection } from '@/data/category-banners';
 
 const PAGE_SIZE_OPTIONS = [20, 40, 60, 100];
 const DEFAULT_PAGE_SIZE = 20;
@@ -29,10 +27,6 @@ export default function CategoryPageContent() {
     const selectedCategoryIds = useMemo(
         () => getSelectedCategoryIds(selectedCategories),
         [selectedCategories],
-    );
-    const banner = useMemo(
-        () => getBannerForSelection(selectedCategoryIds),
-        [selectedCategoryIds],
     );
 
     // The filter store stores either the literal "all" or commodity ids
@@ -81,7 +75,6 @@ export default function CategoryPageContent() {
                 <Filters />
             </div>
             <div className="w-full">
-                <CategoryBanner banner={banner} />
                 <DrawerFilter />
                 <TopBar viewAs={viewAs} setViewAs={setViewAs} />
 

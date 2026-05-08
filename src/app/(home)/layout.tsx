@@ -1,5 +1,5 @@
-import HomeLayout from '@/layouts/home/layout';
+import DefaultLayout from '@/layouts/default/layout';
 
-export default async function DefaultLayout({children}: {children: React.ReactNode}) {
-    return <HomeLayout >{children}</HomeLayout>;
+export default async function Layout({ children }: { children: React.ReactNode }) {
+    return <DefaultLayout>{children}</DefaultLayout>;
 }
