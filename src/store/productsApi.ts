@@ -139,11 +139,13 @@ export interface FilterOptions {
 /**
  * Build the request descriptor for `/v1/items`.
  *
- * - With no commodity filter: plain GET, pageNo / pageSize on the
- *   query string.
- * - With one or more selected commodities: POST, the filter and
- *   paging info travel in the JSON body so we don't bloat the URL
- *   when many commodity ids are selected.
+ * - With no commodity filter: plain GET, pagination on the query string.
+ * - With one or more selected commodities: POST. Pagination still
+ *   travels on the query string (so server-side `Pageable` binding picks
+ *   it up from the URL the same way as for GET); the body carries only
+ *   the filter payload. This avoids a class of bug where a backend
+ *   silently ignores body-level pageSize and returns the entire
+ *   result set.
  */
 const buildItemsRequest = (args: {
     pageNo: number;
@@ -152,28 +154,23 @@ const buildItemsRequest = (args: {
     sortBy?: string;
 }) => {
     const hasFilter = !!(args.commodityId && args.commodityId.length);
-    const pageNo = args.pageNo;
-    const pageSize = args.pageSize;
+    const params = {
+        pageNo: args.pageNo,
+        pageSize: args.pageSize,
+        ...(args.sortBy ? { sortBy: args.sortBy } : {}),
+    };
     if (hasFilter) {
         return {
             url: '/v1/items',
             method: 'POST' as const,
-            data: {
-                pageNo,
-                pageSize,
-                commodityId: args.commodityId,
-                ...(args.sortBy ? { sortBy: args.sortBy } : {}),
-            },
+            params,
+            data: { commodityId: args.commodityId },
         };
     }
     return {
         url: '/v1/items',
         method: 'GET' as const,
-        params: {
-            pageNo,
-            pageSize,
-            ...(args.sortBy ? { sortBy: args.sortBy } : {}),
-        },
+        params,
     };
 };
 

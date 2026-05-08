@@ -1,13 +1,13 @@
 'use client';
 import { Element } from 'react-scroll';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import TopBar from '@/components/category/top-bar';
 import { ProductGrid } from '@/components/product/productListing/product-grid';
 import Filters from '@/components/filter/filters';
 import DrawerFilter from '@/components/category/drawer-filter';
 import Pagination from '@/components/shared/pagination';
 import { GrNext, GrPrevious } from 'react-icons/gr';
-import { useGetProductsPageQuery } from '@/store/productsApi';
+import { useGetProductsPageQuery, type GetProductsPageArgs } from '@/store/productsApi';
 import { usePathname } from 'next/navigation';
 import useQueryParam from '@/utils/use-query-params';
 import { useFilterStore, getSelectedCategoryIds } from '@/stores/useFilterStore';
@@ -41,32 +41,59 @@ export default function CategoryPageContent() {
         [selectedCategoryIds],
     );
 
-    // 1-based for the UI (rc-pagination), 0-based when sent to the API.
+    // Single source of truth for what we ask the server. Combining
+    // pageNo/pageSize/filters in one state guarantees we only make ONE
+    // request per user action, instead of firing a request with the
+    // stale pageNo first and then a second one once the page reset
+    // effect runs.
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
-    // Snap back to page 1 whenever the filter inputs that affect the
-    // total result set change. Without this the user can end up on
-    // page 5 of a result set that only has 1 page.
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [commodityIds, newQuery.sort_by, pageSize]);
-
-    const { data: page, isFetching } = useGetProductsPageQuery({
-        pageNo: currentPage - 1,
-        pageSize,
-        sortBy: newQuery.sort_by,
-        commodityId: commodityIds,
+    // Whenever the filters that affect the result set change, snap the
+    // user back to page 1 *before* the next render so RTK Query only
+    // sees `pageNo: 0` for the new filter. Computing this during render
+    // (instead of via useEffect) avoids the intermediate fetch you'd
+    // otherwise get for `{ newFilter, oldPageNo }`.
+    const filterFingerprint = JSON.stringify({
+        sort: newQuery.sort_by ?? null,
+        ids: commodityIds,
+        size: pageSize,
     });
+    const lastFingerprint = useRef(filterFingerprint);
+    if (lastFingerprint.current !== filterFingerprint) {
+        lastFingerprint.current = filterFingerprint;
+        if (currentPage !== 1) setCurrentPage(1);
+    }
 
-    // Defensive cap: trim to the selected page size in case the backend
-    // returns more rows than requested. This guarantees the user always
-    // sees the number of records they picked from the page-size dropdown.
-    const products = useMemo(
-        () => (page?.content ? page.content.slice(0, pageSize) : page?.content),
-        [page?.content, pageSize],
+    const queryArgs: GetProductsPageArgs = useMemo(
+        () => ({
+            pageNo: currentPage - 1,
+            pageSize,
+            sortBy: newQuery.sort_by,
+            commodityId: commodityIds,
+        }),
+        [currentPage, pageSize, newQuery.sort_by, commodityIds],
     );
-    const totalElements = page?.totalElements ?? 0;
+
+    const {
+        data: page,
+        currentData,
+        isFetching,
+    } = useGetProductsPageQuery(queryArgs);
+
+    // Use `currentData` (data for the *current* args only) for the grid
+    // — RTK Query's `data` keeps the previous successful result while a
+    // refetch is in flight, which would briefly show records from the
+    // previous (possibly larger) page or filter. Cap to the selected
+    // page size as a final safety net.
+    const products = useMemo(
+        () =>
+            currentData?.content
+                ? currentData.content.slice(0, pageSize)
+                : undefined,
+        [currentData?.content, pageSize],
+    );
+    const totalElements = (currentData ?? page)?.totalElements ?? 0;
     const showPagination = totalElements > 0;
 
     return (
