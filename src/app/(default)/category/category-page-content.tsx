@@ -14,7 +14,7 @@ import { useFilterStore, getSelectedCategoryIds } from '@/stores/useFilterStore'
 import CategoryBanner from '@/components/category/category-banner';
 import { getBannerForSelection } from '@/data/category-banners';
 
-const PAGE_SIZE_OPTIONS = [12, 20, 40, 60, 100];
+const PAGE_SIZE_OPTIONS = [20, 40, 60, 100];
 const DEFAULT_PAGE_SIZE = 20;
 
 export default function CategoryPageContent() {
