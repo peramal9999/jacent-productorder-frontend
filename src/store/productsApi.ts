@@ -136,16 +136,58 @@ export interface FilterOptions {
     store?: Record<string, unknown>;
 }
 
+/**
+ * Build the request descriptor for `/v1/items`.
+ *
+ * - With no commodity filter: plain GET, pageNo / pageSize on the
+ *   query string.
+ * - With one or more selected commodities: POST, the filter and
+ *   paging info travel in the JSON body so we don't bloat the URL
+ *   when many commodity ids are selected.
+ */
+const buildItemsRequest = (args: {
+    pageNo: number;
+    pageSize: number;
+    commodityId?: Array<number | string>;
+    sortBy?: string;
+}) => {
+    const hasFilter = !!(args.commodityId && args.commodityId.length);
+    const pageNo = args.pageNo;
+    const pageSize = args.pageSize;
+    if (hasFilter) {
+        return {
+            url: '/v1/items',
+            method: 'POST' as const,
+            data: {
+                pageNo,
+                pageSize,
+                commodityId: args.commodityId,
+                ...(args.sortBy ? { sortBy: args.sortBy } : {}),
+            },
+        };
+    }
+    return {
+        url: '/v1/items',
+        method: 'GET' as const,
+        params: {
+            pageNo,
+            pageSize,
+            ...(args.sortBy ? { sortBy: args.sortBy } : {}),
+        },
+    };
+};
+
 export const productsApi = createApi({
     reducerPath: 'productsApi',
     baseQuery: axiosBaseQuery(),
     tagTypes: ['Products', 'FilterOptions'],
     endpoints: (builder) => ({
         /**
-         * Paginated catalogue listing. Backed by `GET /api/v1/items`.
-         * Use the infinite-query hook (`useGetAllProductsInfiniteQuery`)
-         * for the home / category grid; consumers that just need the first
-         * page can read `data.pages[0]`.
+         * Paginated catalogue listing. Backed by `/api/v1/items`.
+         * - GET `/v1/items?pageNo=&pageSize=` for the unfiltered home
+         *   page load.
+         * - POST `/v1/items` (filter + paging in body) when the user
+         *   has selected one or more categories.
          */
         getAllProducts: builder.infiniteQuery<
             ProductsPage,
@@ -159,18 +201,13 @@ export const productsApi = createApi({
                         ? lastPageParam + 1
                         : undefined,
             },
-            query: ({ pageParam, queryArg }) => ({
-                url: '/v1/items',
-                method: 'GET',
-                params: {
+            query: ({ pageParam, queryArg }) =>
+                buildItemsRequest({
                     pageNo: pageParam,
                     pageSize: queryArg?.pageSize ?? 20,
-                    ...(queryArg?.commodityId && queryArg.commodityId.length
-                        ? { commodityId: queryArg.commodityId }
-                        : {}),
-                    ...(queryArg?.sortBy ? { sortBy: queryArg.sortBy } : {}),
-                },
-            }),
+                    commodityId: queryArg?.commodityId,
+                    sortBy: queryArg?.sortBy,
+                }),
             transformResponse: (response: unknown) => normaliseItems(response),
             providesTags: ['Products'],
         }),
@@ -179,20 +216,17 @@ export const productsApi = createApi({
          * Single-page listing variant of `getAllProducts`. Use this when
          * the UI wants explicit pagination controls (page numbers /
          * page-size selector) instead of an infinite "load more" stream.
+         * Same GET-vs-POST rule applies based on whether commodity
+         * filters are active.
          */
         getProductsPage: builder.query<ProductsPage, GetProductsPageArgs | void>({
-            query: (args) => ({
-                url: '/v1/items',
-                method: 'GET',
-                params: {
+            query: (args) =>
+                buildItemsRequest({
                     pageNo: args?.pageNo ?? 0,
                     pageSize: args?.pageSize ?? 20,
-                    ...(args?.commodityId && args.commodityId.length
-                        ? { commodityId: args.commodityId }
-                        : {}),
-                    ...(args?.sortBy ? { sortBy: args.sortBy } : {}),
-                },
-            }),
+                    commodityId: args?.commodityId,
+                    sortBy: args?.sortBy,
+                }),
             transformResponse: (response: unknown) => normaliseItems(response),
             providesTags: ['Products'],
         }),
