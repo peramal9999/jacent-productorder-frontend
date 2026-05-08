@@ -6,11 +6,9 @@ import { ProductLoadMore } from '@/components/product/productListing/product-loa
 import Filters from '@/components/filter/filters';
 import DrawerFilter from '@/components/category/drawer-filter';
 import { LIMITS } from '@/services/utils/limits';
-import { useMoreProductsQuery } from '@/services/product/get-all-more-products';
+import { useGetAllProductsInfiniteQuery } from '@/store/productsApi';
 import { usePathname } from 'next/navigation';
 import useQueryParam from '@/utils/use-query-params';
-import { InfiniteData } from '@tanstack/react-query';
-import { PaginatedProduct } from '@/services/types';
 import { useFilterStore, getSelectedCategoryIds } from '@/stores/useFilterStore';
 import CategoryBanner from '@/components/category/category-banner';
 import { getBannerForSelection } from '@/data/category-banners';
@@ -33,7 +31,18 @@ export default function CategoryPageContent() {
         [selectedCategoryIds],
     );
 
-    // Get category query parameters
+    // The filter store stores either the literal "all" or commodity ids
+    // (numeric strings) keyed by the commodities returned from
+    // /v1/filterOptions. Pass them through to the server when present so
+    // the API can scope results, and skip the param when "all" is active.
+    const commodityIds = useMemo(
+        () =>
+            selectedCategoryIds.filter(
+                (id) => id !== 'all' && /^\d+$/.test(id),
+            ),
+        [selectedCategoryIds],
+    );
+
     const limit = LIMITS.PRODUCTS_LIMITS;
     const {
         isFetching: isLoading,
@@ -41,11 +50,34 @@ export default function CategoryPageContent() {
         fetchNextPage,
         hasNextPage,
         data,
-    } = useMoreProductsQuery({
-        limit: limit,
-        sort_by: newQuery.sort_by,
-        categories: selectedCategoryIds,
+    } = useGetAllProductsInfiniteQuery({
+        pageSize: limit,
+        sortBy: newQuery.sort_by,
+        commodityId: commodityIds,
     });
+
+    // Adapt RTK Query's infinite-query shape (`data.pages: ProductsPage[]`)
+    // to what `<ProductLoadMore />` already understands
+    // (`data.pages: PaginatedProduct[]`).
+    const adaptedData = useMemo(
+        () =>
+            data
+                ? {
+                      pages: data.pages.map((p) => ({
+                          data: p.content,
+                          paginatorInfo: {
+                              nextPage:
+                                  p.pageNo + 1 < p.totalPages
+                                      ? p.pageNo + 2
+                                      : null,
+                              total: p.totalElements,
+                          },
+                      })),
+                      pageParams: data.pageParams,
+                  }
+                : undefined,
+        [data],
+    );
 
     return (
         <Element name="category" className="flex products-category">
@@ -57,7 +89,7 @@ export default function CategoryPageContent() {
                 <DrawerFilter />
                 <TopBar viewAs={viewAs} setViewAs={setViewAs} />
                 <ProductLoadMore
-                    data={data as InfiniteData<PaginatedProduct, unknown>}
+                    data={adaptedData as unknown as Parameters<typeof ProductLoadMore>[0]['data']}
                     isLoading={isLoading}
                     fetchNextPage={fetchNextPage}
                     hasNextPage={hasNextPage}

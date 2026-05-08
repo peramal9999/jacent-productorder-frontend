@@ -1,31 +1,19 @@
 "use client";
 
-import React from "react";
-import Switch from "@/components/shared/switch";
-import {CategoriesFilter} from "@/components/filter/facets/categories-filter";
+import React, {useMemo} from "react";
+import {CategoriesFilter, type CategoryOption} from "@/components/filter/facets/categories-filter";
 import {FilterSection} from "@/components/filter/facets/filter-section";
-import {ColorsFilter} from "@/components/filter/facets/colors-filter";
 
-// Sample data
-import {
-    categoriesData,
-    colorsData,
-    sizesData
-} from "@/components/filter/data";
-import {SizesFilter} from "@/components/filter/facets/sizes-filter";
 import {PriceRangeFilter} from "@/components/filter/facets/price-range-filter";
 import {useFilters} from "@/hooks/use-filter-hooks";
 import {useFilterStore} from "@/stores/useFilterStore";
+import {useGetFilterOptionsQuery} from "@/store/productsApi";
 
 
 const Filters = () => {
     const {
-        isOnSale,
-        setIsOnSale,
         sectionsOpen,
         toggleSection,
-        selectedFilters,
-        handleFilterChange,
         priceRange,
         handlePriceRangeChange,
         expandedCategories,
@@ -36,19 +24,43 @@ const Filters = () => {
     const storeSelectedCategories = useFilterStore((s) => s.selectedCategories);
     const toggleCategory = useFilterStore((s) => s.toggleCategory);
 
+    // Categories come from `/api/v1/filterOptions`. We surface every
+    // commodity (sorted A→Z by name) as a category checkbox, with a
+    // synthetic "All" option pinned to the top so the user can always
+    // clear their selection.
+    const {data: filterOptions, isFetching: loadingFilters} =
+        useGetFilterOptionsQuery();
+
+    const categories = useMemo<CategoryOption[]>(() => {
+        const all: CategoryOption = {id: "all", label: "All", count: 0};
+        if (!filterOptions?.commodities?.length) return [all];
+        const items = [...filterOptions.commodities]
+            .sort((a, b) => a.commodity.localeCompare(b.commodity))
+            .map<CategoryOption>((c) => ({
+                id: String(c.commodityId),
+                label: c.commodity,
+                count: 0,
+            }));
+        return [all, ...items];
+    }, [filterOptions]);
+
 
     return (
         <div className="rounded ">
             {/* Categories Filter */}
             <FilterSection title="Categories" isOpen={sectionsOpen.categories}
                            onToggle={() => toggleSection("categories")}>
-                <CategoriesFilter
-                    categories={categoriesData}
-                    selectedCategories={storeSelectedCategories}
-                    expandedCategories={expandedCategories}
-                    onCategoryChange={(id, checked) => toggleCategory(id, checked)}
-                    onCategoryExpand={toggleCategoryExpand}
-                />
+                {loadingFilters && !filterOptions ? (
+                    <p className="text-sm text-gray-500">Loading categories…</p>
+                ) : (
+                    <CategoriesFilter
+                        categories={categories}
+                        selectedCategories={storeSelectedCategories}
+                        expandedCategories={expandedCategories}
+                        onCategoryChange={(id, checked) => toggleCategory(id, checked)}
+                        onCategoryExpand={toggleCategoryExpand}
+                    />
+                )}
             </FilterSection>
             
             {/* Price Range Filter */}
