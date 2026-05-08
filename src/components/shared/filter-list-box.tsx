@@ -28,14 +28,14 @@ export default function ListBox({
     : options[0];
   const [selectedItem, setSelectedItem] = useState<Option>(currentSelectedItem);
 
+  // Keep the dropdown label in sync with whatever the URL already says.
+  // We deliberately do NOT push the default value to the URL on mount —
+  // that would dirty the address bar with `?sort_by=new-arrival` on a
+  // plain `/category` visit and cause a second `/v1/items` request with
+  // a different cache key.
   useEffect(() => {
     setSelectedItem(currentSelectedItem);
   }, [currentSelectedItem]);
-
-  useEffect(() => {
-    updateQueryparams('sort_by', currentSelectedItem.value.toString());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSelectedItem.value]);
 
   function handleItemClick(value: string) {
     updateQueryparams('sort_by', value);
