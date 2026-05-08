@@ -11,9 +11,7 @@ import { useGetProductsPageQuery, type GetProductsPageArgs } from '@/store/produ
 import { usePathname } from 'next/navigation';
 import useQueryParam from '@/utils/use-query-params';
 import { useFilterStore, getSelectedCategoryIds } from '@/stores/useFilterStore';
-
-const PAGE_SIZE_OPTIONS = [20, 40, 60, 100];
-const DEFAULT_PAGE_SIZE = 20;
+import { paginationSize, pageSizeOptions } from '@/utils/constants';
 
 export default function CategoryPageContent() {
     const [viewAs, setViewAs] = useState(Boolean(true));
@@ -47,7 +45,7 @@ export default function CategoryPageContent() {
     // stale pageNo first and then a second one once the page reset
     // effect runs.
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+    const [pageSize, setPageSize] = useState<number>(paginationSize);
 
     // Whenever the filters that affect the result set change, snap the
     // user back to page 1 *before* the next render so RTK Query only
@@ -122,7 +120,7 @@ export default function CategoryPageContent() {
                                 className="h-9 px-2 rounded border border-gray-300 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-brand-dark"
                                 aria-label="Items per page"
                             >
-                                {PAGE_SIZE_OPTIONS.map((n) => (
+                                {pageSizeOptions.map((n) => (
                                     <option key={n} value={n}>
                                         {n}
                                     </option>
