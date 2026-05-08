@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React, {useMemo, useState} from "react";
 import {CategoriesFilter, type CategoryOption} from "@/components/filter/facets/categories-filter";
 import {FilterSection} from "@/components/filter/facets/filter-section";
 
@@ -23,6 +23,7 @@ const Filters = () => {
     } = useFilters();
     const storeSelectedCategories = useFilterStore((s) => s.selectedCategories);
     const toggleCategory = useFilterStore((s) => s.toggleCategory);
+    const [categorySearch, setCategorySearch] = useState("");
 
     // Categories come from `/api/v1/filterOptions`. We surface every
     // commodity (sorted A→Z by name) as a category checkbox, with a
@@ -44,17 +45,36 @@ const Filters = () => {
         return [all, ...items];
     }, [filterOptions]);
 
+    const visibleCategories = useMemo(() => {
+        const q = categorySearch.trim().toLowerCase();
+        if (!q) return categories;
+        // Always keep "All" so the user can reset, even mid-search.
+        return categories.filter(
+            (c) => c.id === "all" || c.label.toLowerCase().includes(q),
+        );
+    }, [categories, categorySearch]);
+
 
     return (
         <div className="rounded ">
             {/* Categories Filter */}
-            <FilterSection title="Categories" isOpen={sectionsOpen.categories}
-                           onToggle={() => toggleSection("categories")}>
+            <FilterSection
+                title="Categories"
+                isOpen={sectionsOpen.categories}
+                onToggle={() => toggleSection("categories")}
+                searchValue={categorySearch}
+                onSearchChange={setCategorySearch}
+                searchPlaceholder="Search categories…"
+            >
                 {loadingFilters && !filterOptions ? (
                     <p className="text-sm text-gray-500">Loading categories…</p>
+                ) : visibleCategories.length === 1 && categorySearch ? (
+                    <p className="text-sm text-gray-500">
+                        No categories match &ldquo;{categorySearch}&rdquo;.
+                    </p>
                 ) : (
                     <CategoriesFilter
-                        categories={categories}
+                        categories={visibleCategories}
                         selectedCategories={storeSelectedCategories}
                         expandedCategories={expandedCategories}
                         onCategoryChange={(id, checked) => toggleCategory(id, checked)}
