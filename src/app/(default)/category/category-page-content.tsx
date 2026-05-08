@@ -65,7 +65,13 @@ export default function CategoryPageContent() {
         commodityId: commodityIds,
     });
 
-    const products = page?.content;
+    // Defensive cap: trim to the selected page size in case the backend
+    // returns more rows than requested. This guarantees the user always
+    // sees the number of records they picked from the page-size dropdown.
+    const products = useMemo(
+        () => (page?.content ? page.content.slice(0, pageSize) : page?.content),
+        [page?.content, pageSize],
+    );
     const totalElements = page?.totalElements ?? 0;
     const showPagination = totalElements > 0;
 
