@@ -2,7 +2,6 @@ import Container from "@/components/shared/container";
 import {Metadata} from "next";
 import ShoppingCart from "@/components/cart/shopping-cart";
 import Breadcrumb from "@/components/shared/breadcrumb";
-import CategoriesPageContent from "@/app/(default)/categories/categories-page-content";
 
 export const metadata: Metadata = {
 	title: 'Cart Page',

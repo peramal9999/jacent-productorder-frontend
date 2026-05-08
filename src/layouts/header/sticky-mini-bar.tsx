@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import cn from 'classnames';
 import Container from '@/components/shared/container';
 import Logo from '@/components/shared/logo';
-import Search from '@/components/top-search/search';
 import { siteNavigation } from '@/data/navigation-settings';
 
 const AuthDropdown = dynamic(() => import('@/layouts/header/auth-dropdown'), {
@@ -60,13 +59,6 @@ const StickyMiniBar: React.FC = () => {
                             </Link>
                         ))}
                     </nav>
-
-                    {/* Search bar fills the middle. */}
-                    <Search
-                        searchId="sticky-search"
-                        variant={"dark"}
-                        className="hidden lg:flex flex-1 max-w-[600px] xl:max-w-[800px] mx-2"
-                    />
 
                     {/* Right-side actions. */}
                     <div className="flex items-center gap-2 text-brand-light flex-shrink-0 ms-auto">
