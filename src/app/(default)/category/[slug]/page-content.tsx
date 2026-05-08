@@ -5,7 +5,7 @@ import TopBar from "@/components/category/top-bar";
 import Filters from "@/components/filter/filters";
 import DrawerFilter from "@/components/category/drawer-filter";
 import {LIMITS} from "@/services/utils/limits";
-import {useGetAllProductsQuery} from "@/store/productsApi";
+import {useGetAllProductsInfiniteQuery} from "@/store/productsApi";
 import {usePathname} from "next/navigation";
 import useQueryParam from "@/utils/use-query-params";
 import {ProductMain} from "@/components/product/productListing/product-main";
@@ -19,11 +19,10 @@ export default function PageContent() {
 	);
 	void newQuery;
 	const limit = LIMITS.PRODUCTS_LIMITS;
-	const { data: page, isLoading } = useGetAllProductsQuery({
-		pageNo: 0,
+	const { data: pages, isLoading } = useGetAllProductsInfiniteQuery({
 		pageSize: limit,
 	});
-	const data = page?.content;
+	const data = pages?.pages?.[0]?.content;
 	
 	
 	return (

@@ -1,20 +1,17 @@
 "use client"
 
-import React from "react"
-import {CategoriesFilter} from "@/components/filter/facets/categories-filter";
-import {SizesFilter} from "@/components/filter/facets/sizes-filter";
-import {ColorsFilter} from "@/components/filter/facets/colors-filter";
+import React, {useMemo} from "react"
+import {CategoriesFilter, type CategoryOption} from "@/components/filter/facets/categories-filter";
 import {PriceRangeFilter} from "@/components/filter/facets/price-range-filter";
-import {DollarSign, LayoutGrid, Palette, Ruler, Tag, X} from "lucide-react"
+import {DollarSign, LayoutGrid, Tag, X} from "lucide-react"
 
-// Sample data
-import {categoriesData, colorsData, sizesData} from "@/components/filter/data";
 import {FilterPopover} from "@/components/filter/facets/filter-popover";
 import cn from "classnames";
 import {colorMap} from "@/data/color-settings";
 import {usePanel} from "@/hooks/use-panel";
 import {useFilterControls} from "@/hooks/use-filter-hooks";
 import {useFilterStore} from "@/stores/useFilterStore";
+import {useGetFilterOptionsQuery} from "@/store/productsApi";
 
 
 export default function HorizontalFilter() {
@@ -37,6 +34,20 @@ export default function HorizontalFilter() {
     const clearCategories = useFilterStore((s) => s.clearCategories);
     const categoriesSelected = Object.values(storeSelectedCategories).some(Boolean);
 
+    const {data: filterOptions} = useGetFilterOptionsQuery();
+    const categories = useMemo<CategoryOption[]>(() => {
+        const all: CategoryOption = {id: "all", label: "All", count: 0};
+        if (!filterOptions?.commodities?.length) return [all];
+        const items = [...filterOptions.commodities]
+            .sort((a, b) => a.commodity.localeCompare(b.commodity))
+            .map<CategoryOption>((c) => ({
+                id: String(c.commodityId),
+                label: c.commodity,
+                count: 0,
+            }));
+        return [all, ...items];
+    }, [filterOptions]);
+
     return (
         <div className="w-full px-4 py-6 bg-gray-100 dark:bg-white rounded">
             <div className="flex items-center gap-5">
@@ -52,7 +63,7 @@ export default function HorizontalFilter() {
                         <h3 className="font-semibold text-base  text-brand-dark">Categories</h3>
                     </div>
                     <CategoriesFilter
-                        categories={categoriesData}
+                        categories={categories}
                         selectedCategories={storeSelectedCategories}
                         onCategoryChange={(id, checked) => toggleCategory(id, checked)}
                     />
