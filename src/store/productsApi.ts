@@ -114,6 +114,10 @@ export interface GetAllProductsArgs {
     sortBy?: string;
 }
 
+export interface GetProductsPageArgs extends GetAllProductsArgs {
+    pageNo?: number;
+}
+
 export interface CommodityDTO {
     commodity: string;
     commodityId: number;
@@ -172,6 +176,28 @@ export const productsApi = createApi({
         }),
 
         /**
+         * Single-page listing variant of `getAllProducts`. Use this when
+         * the UI wants explicit pagination controls (page numbers /
+         * page-size selector) instead of an infinite "load more" stream.
+         */
+        getProductsPage: builder.query<ProductsPage, GetProductsPageArgs | void>({
+            query: (args) => ({
+                url: '/v1/items',
+                method: 'GET',
+                params: {
+                    pageNo: args?.pageNo ?? 0,
+                    pageSize: args?.pageSize ?? 20,
+                    ...(args?.commodityId && args.commodityId.length
+                        ? { commodityId: args.commodityId }
+                        : {}),
+                    ...(args?.sortBy ? { sortBy: args.sortBy } : {}),
+                },
+            }),
+            transformResponse: (response: unknown) => normaliseItems(response),
+            providesTags: ['Products'],
+        }),
+
+        /**
          * Filter / facet metadata for the catalogue. Backed by
          * `GET /api/v1/filterOptions`. We surface `commodities` as
          * the category list shown on the home / category page.
@@ -185,5 +211,6 @@ export const productsApi = createApi({
 
 export const {
     useGetAllProductsInfiniteQuery,
+    useGetProductsPageQuery,
     useGetFilterOptionsQuery,
 } = productsApi;
