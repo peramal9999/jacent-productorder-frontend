@@ -14,9 +14,9 @@
 export const REFRESH_TOKEN_INTERVAL_IN_MILLISECONDS = 13800 * 1000; // 230 minutes
 
 /** Default number of items per page in lists / tables. */
-export const paginationSize = 20;
+export const paginationSize = 25;
 
 /** Selectable page-size options for paginated lists. */
-export const pageSizeOptions = ['20', '50', '100', '150', '200'] as const;
+export const pageSizeOptions = ['25', '50', '75', '100', '125', '150'] as const;
 
 export type PageSizeOption = (typeof pageSizeOptions)[number];
