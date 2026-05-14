@@ -1,5 +1,6 @@
 import WidgetLink from './widget-link';
 import WidgetAbout from './widget-about-us';
+import WidgetCategoriesLink from './widget-categories-link';
 import Container from '@/components/shared/container';
 import {footerSettings} from '@/data/footer-settings';
 import React from 'react';
@@ -48,25 +49,43 @@ const Widgets: React.FC<WidgetsProps> = ({
                     />
                     {showWidgetSubscription ? (
                         <>
-                            {widgets?.slice(0, 3)?.map((widget) => (
+                            {widgets?.slice(0, 3)?.map((widget) =>
+                                widget.widgetTitle === 'Categories' ? (
+                                    <WidgetCategoriesLink
+                                        key={`footer-widget--key${widget.id}`}
+                                        title={widget.widgetTitle}
+                                        className="col-span-1 md:col-span-2"
+                                        variant={variant}
+                                    />
+                                ) : (
+                                    <WidgetLink
+                                        key={`footer-widget--key${widget.id}`}
+                                        data={widget}
+                                        className="col-span-1 md:col-span-2"
+                                        variant={variant}
+                                    />
+                                ),
+                            )}
+                            <WidgetSubscription  variant={variant}  className={"col-span-full sm:col-span-1 md:col-start-4 xl:col-start-auto md:col-span-4 xl:col-span-3"} />
+                        </>
+                    ): (
+                        widgets?.slice(0, 4)?.map((widget) =>
+                            widget.widgetTitle === 'Categories' ? (
+                                <WidgetCategoriesLink
+                                    key={`footer-widget--key${widget.id}`}
+                                    title={widget.widgetTitle}
+                                    className="col-span-1 md:col-span-2"
+                                    variant={variant}
+                                />
+                            ) : (
                                 <WidgetLink
                                     key={`footer-widget--key${widget.id}`}
                                     data={widget}
                                     className="col-span-1 md:col-span-2"
                                     variant={variant}
                                 />
-                            ))}
-                            <WidgetSubscription  variant={variant}  className={"col-span-full sm:col-span-1 md:col-start-4 xl:col-start-auto md:col-span-4 xl:col-span-3"} />
-                        </>
-                    ): (
-                        widgets?.slice(0, 4)?.map((widget) => (
-                        <WidgetLink
-                            key={`footer-widget--key${widget.id}`}
-                            data={widget}
-                            className="col-span-1 md:col-span-2"
-                            variant={variant}
-                        />
-                        ))
+                            ),
+                        )
                     )}
                 </div>
             </Container>

@@ -4,7 +4,6 @@ import Input from "@/components/shared/form/input";
 import React, {useState} from "react";
 import Switch from "@/components/shared/switch";
 import Button from "@/components/shared/button";
-import Link from "@/components/shared/link";
 
 type ContactFormData = {
 	phone: string
@@ -14,17 +13,19 @@ type ContactFormData = {
 
 interface ContactFormProps {
 	onComplete: (data: ContactFormData) => void
+	defaultPhone?: string
+	defaultEmail?: string
 }
 
-const ContactForm: React.FC <ContactFormProps> = ({ onComplete }) => {
+const ContactForm: React.FC <ContactFormProps> = ({ onComplete, defaultPhone = '', defaultEmail = '' }) => {
 	const {
 		register,
 		handleSubmit,
 		formState: { errors },
 	} = useForm<ContactFormData>({
 		defaultValues: {
-			phone: "+8553456644",
-			email: "yourexample@email.com",
+			phone: defaultPhone,
+			email: defaultEmail,
 			receiveNews: false,
 		},
 	})
@@ -36,13 +37,7 @@ const ContactForm: React.FC <ContactFormProps> = ({ onComplete }) => {
 		<div className="w-full ">
 			<form onSubmit={handleSubmit(onComplete)}>
 				<div className="md:flex justify-between items-center mb-6">
-					<h1 className="text-xl text-brand-dark font-semibold">Contact infomation</h1>
-					<div className="text-sm">
-						Do not have an account?{" "}
-						<Link href="/login" className="hover:underline">
-							Log in
-						</Link>
-					</div>
+					<h1 className="text-xl text-brand-dark font-semibold">Contact information</h1>
 				</div>
 				<div className="space-y-6">
 					<Input

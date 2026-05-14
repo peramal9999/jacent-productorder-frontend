@@ -29,6 +29,7 @@ const ProductCard: React.FC<ProductProps> = ({
     const customerItemCode = (product as { customerItemCode?: string }).customerItemCode;
     const stockLevel = (product as { stockLevel?: number }).stockLevel ?? 0;
     const isTopSeller = (product as { isTopSeller?: boolean }).isTopSeller;
+    const imageSrc = `https://jsmitemimage.s3.us-east-2.amazonaws.com/${id}.jpg`;
 
     const { useCartHelpers } = useCart();
     const { outOfStock: cartOutOfStock } = useCartHelpers();
@@ -53,7 +54,7 @@ const ProductCard: React.FC<ProductProps> = ({
             {/* Image + badges */}
             <div className="relative w-full aspect-square bg-gray-50 overflow-hidden">
                 <Image
-                    src={image?.thumbnail ?? productPlaceholder}
+                    src={imageSrc}
                     alt={name || 'Product Image'}
                     width={300}
                     height={300}
@@ -67,11 +68,11 @@ const ProductCard: React.FC<ProductProps> = ({
                             ★ Top seller
                         </span>
                     )}
-                    {isOOS && (
+                    {/* {isOOS && (
                         <span className="inline-flex items-center px-2 py-0.5 bg-gray-900 text-white rounded text-[10px] font-semibold uppercase tracking-wide shadow">
                             Out of Stock
                         </span>
-                    )}
+                    )} */}
                 </div>
 
                 {/* Top-right: product ID chip */}
@@ -80,7 +81,7 @@ const ProductCard: React.FC<ProductProps> = ({
                 </span>
 
                 {/* Hover overlay add-to-cart (lg+ only) */}
-                {!isOOS && (
+                {/* {!isOOS && ( */}
                     <div
                         className={cn(
                             'absolute inset-x-2 bottom-2 z-10 hidden lg:flex justify-center',
@@ -94,7 +95,7 @@ const ProductCard: React.FC<ProductProps> = ({
                             className="!min-w-0 w-full !text-[12px] !py-2 shadow-lg"
                         />
                     </div>
-                )}
+                {/* )} */}
             </div>
 
             {/* Body */}
@@ -137,20 +138,20 @@ const ProductCard: React.FC<ProductProps> = ({
                 {/* Mobile / tablet: persistent Add to Cart below the body.
                     Hidden on lg because the hover overlay handles it there. */}
                 <div className="lg:hidden mt-2">
-                    {isOOS ? (
+                    {/* {isOOS ? (
                         <button
                             disabled
                             className="w-full px-3 py-2 text-xs font-medium text-gray-500 bg-gray-100 border border-gray-200 rounded-md cursor-not-allowed"
                         >
                             Out of Stock
                         </button>
-                    ) : (
+                    ) : ( */}
                         <AddToCart
                             data={product}
                             variant="dark"
                             className="!min-w-0 w-full !text-[12px] !py-2"
                         />
-                    )}
+                    {/* )} */}
                 </div>
             </div>
         </article>

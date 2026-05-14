@@ -110,7 +110,12 @@ const normaliseItems = (raw: unknown): ProductsPage => {
 export interface GetAllProductsArgs {
     pageSize?: number;
     /** Optional commodity ids to filter by (server-side). */
-    commodityId?: Array<number | string>;
+    commodityIds?: Array<number | string>;
+    /** Optional commodity names that align 1:1 with `commodityIds`. */
+    commodities?: string[];
+    /** Optional inclusive price range. Pass 0/0 (default) to skip filtering. */
+    priceRangeMin?: number;
+    priceRangeMax?: number;
     sortBy?: string;
 }
 
@@ -139,38 +144,44 @@ export interface FilterOptions {
 /**
  * Build the request descriptor for `/v1/items`.
  *
- * - With no commodity filter: plain GET, pagination on the query string.
- * - With one or more selected commodities: POST. Pagination still
- *   travels on the query string (so server-side `Pageable` binding picks
- *   it up from the URL the same way as for GET); the body carries only
- *   the filter payload. This avoids a class of bug where a backend
- *   silently ignores body-level pageSize and returns the entire
- *   result set.
+ * - No category selected → `GET /v1/items?pageNo=&pageSize=` (only those
+ *   two params, as specified by the backend).
+ * - One or more categories selected → `POST /v1/items` with the full
+ *   filter body: { pageNo, pageSize, commodityIds, priceRangeMin,
+ *   priceRangeMax }. `sortBy`, when present, rides on the query string
+ *   since it isn't part of the documented body shape.
  */
 const buildItemsRequest = (args: {
     pageNo: number;
     pageSize: number;
-    commodityId?: Array<number | string>;
+    commodityIds?: Array<number | string>;
+    commodities?: string[];
+    priceRangeMin?: number;
+    priceRangeMax?: number;
     sortBy?: string;
 }) => {
-    const hasFilter = !!(args.commodityId && args.commodityId.length);
-    const params = {
-        pageNo: args.pageNo,
-        pageSize: args.pageSize,
-        ...(args.sortBy ? { sortBy: args.sortBy } : {}),
-    };
-    if (hasFilter) {
+    const hasCategoryFilter = !!(args.commodityIds && args.commodityIds.length);
+    const hasPriceFilter =
+        (args.priceRangeMin ?? 0) > 0 || (args.priceRangeMax ?? 0) > 0;
+    if (!hasCategoryFilter && !hasPriceFilter) {
         return {
             url: '/v1/items',
-            method: 'POST' as const,
-            params,
-            data: { commodityId: args.commodityId },
+            method: 'GET' as const,
+            params: { pageNo: args.pageNo, pageSize: args.pageSize },
         };
     }
     return {
         url: '/v1/items',
-        method: 'GET' as const,
-        params,
+        method: 'POST' as const,
+        ...(args.sortBy ? { params: { sortBy: args.sortBy } } : {}),
+        data: {
+            pageNo: args.pageNo,
+            pageSize: args.pageSize,
+            commodityIds: (args.commodityIds ?? []).map((id) => Number(id)),
+            commodities: args.commodities ?? [],
+            priceRangeMin: args.priceRangeMin ?? 0,
+            priceRangeMax: args.priceRangeMax ?? 0,
+        },
     };
 };
 
@@ -180,48 +191,18 @@ export const productsApi = createApi({
     tagTypes: ['Products', 'FilterOptions'],
     endpoints: (builder) => ({
         /**
-         * Paginated catalogue listing. Backed by `/api/v1/items`.
-         * - GET `/v1/items?pageNo=&pageSize=` for the unfiltered home
-         *   page load.
-         * - POST `/v1/items` (filter + paging in body) when the user
-         *   has selected one or more categories.
-         */
-        getAllProducts: builder.infiniteQuery<
-            ProductsPage,
-            GetAllProductsArgs | void,
-            number
-        >({
-            infiniteQueryOptions: {
-                initialPageParam: 0,
-                getNextPageParam: (lastPage, _allPages, lastPageParam) =>
-                    lastPageParam + 1 < (lastPage.totalPages ?? 0)
-                        ? lastPageParam + 1
-                        : undefined,
-            },
-            query: ({ pageParam, queryArg }) =>
-                buildItemsRequest({
-                    pageNo: pageParam,
-                    pageSize: queryArg?.pageSize ?? 20,
-                    commodityId: queryArg?.commodityId,
-                    sortBy: queryArg?.sortBy,
-                }),
-            transformResponse: (response: unknown) => normaliseItems(response),
-            providesTags: ['Products'],
-        }),
-
-        /**
-         * Single-page listing variant of `getAllProducts`. Use this when
-         * the UI wants explicit pagination controls (page numbers /
-         * page-size selector) instead of an infinite "load more" stream.
-         * Same GET-vs-POST rule applies based on whether commodity
-         * filters are active.
+         * Single-page catalogue listing. Backed by `/v1/items`. See
+         * `buildItemsRequest` for the GET vs POST switch.
          */
         getProductsPage: builder.query<ProductsPage, GetProductsPageArgs | void>({
             query: (args) =>
                 buildItemsRequest({
                     pageNo: args?.pageNo ?? 0,
-                    pageSize: args?.pageSize ?? 20,
-                    commodityId: args?.commodityId,
+                    pageSize: args?.pageSize ?? 25,
+                    commodityIds: args?.commodityIds,
+                    commodities: args?.commodities,
+                    priceRangeMin: args?.priceRangeMin,
+                    priceRangeMax: args?.priceRangeMax,
                     sortBy: args?.sortBy,
                 }),
             transformResponse: (response: unknown) => normaliseItems(response),
@@ -237,11 +218,27 @@ export const productsApi = createApi({
             query: () => ({ url: '/v1/filterOptions', method: 'GET' }),
             providesTags: ['FilterOptions'],
         }),
+
+        /**
+         * Free-text catalogue search. Backed by
+         * `GET /api/v1/items/search?searchString=...`.
+         * Caller is responsible for only firing this when the search
+         * string is meaningful (≥ 3 characters).
+         */
+        searchItems: builder.query<Product[], string>({
+            query: (searchString) => ({
+                url: '/v1/items/search',
+                method: 'GET',
+                params: { searchString },
+            }),
+            transformResponse: (response: unknown) =>
+                normaliseItems(response).content,
+        }),
     }),
 });
 
 export const {
-    useGetAllProductsInfiniteQuery,
     useGetProductsPageQuery,
     useGetFilterOptionsQuery,
+    useSearchItemsQuery,
 } = productsApi;

@@ -5,7 +5,7 @@ import Heading from '@/components/shared/heading';
 import {Controller, useForm} from 'react-hook-form';
 import {UpdateUserType, useUpdateUserMutation,} from '@/services/customer/use-update-customer';
 import { FaCamera } from "react-icons/fa";
-import React from "react";
+import React, { useEffect } from "react";
 
 import Divider from "@/components/shared/divider";
 import Image from "@/components/shared/image";
@@ -13,11 +13,8 @@ import SearchableSelect, {
     SearchableSelectOption,
 } from '@/components/shared/form/searchable-select';
 import { storeLocations } from '@/data/locations';
-
-
-const defaultValues = {
-    location: '',
-};
+import { useMeQuery } from '@/store/authApi';
+import Loading from '@/components/shared/loading';
 
 // Build the dropdown options from the raw CSV data: each option exposes
 // the LOCATION_ID as the form value, with the full ADDRESS rendered as
@@ -30,18 +27,46 @@ const locationOptions: SearchableSelectOption[] = storeLocations.map((l) => ({
 
 const AccountInfo: React.FC = () => {
     const {mutate: updateUser} = useUpdateUserMutation();
+    const { data: me, isLoading: meLoading } = useMeQuery();
+
+    const u = (me ?? {}) as Record<string, unknown>;
+    const fullName =
+        (u.name as string) ||
+        [u.firstName, u.lastName].filter(Boolean).join(' ') ||
+        (u.userName as string) ||
+        '';
+    const email = (u.email as string) ?? '';
+    const phoneNumber =
+        (u.phoneNumber as string) ?? (u.phone as string) ?? '';
+    const locationId =
+        u.locationId != null ? String(u.locationId) : (u.location as string) ?? '';
+
     const {
         register,
         handleSubmit,
         control,
+        reset,
         formState: { errors },
     } = useForm<UpdateUserType & { location: string }>({
-        defaultValues,
+        defaultValues: { location: '' },
     });
+
+    // Once /auth/me arrives, hydrate the form fields with the real user.
+    useEffect(() => {
+        if (!me) return;
+        reset({
+            userName: fullName,
+            email,
+            phoneNumber,
+            location: locationId,
+        } as UpdateUserType & { location: string });
+    }, [me, fullName, email, phoneNumber, locationId, reset]);
 
     function onSubmit(input: UpdateUserType) {
         updateUser(input);
     }
+
+    if (meLoading) return <Loading />;
 
     return (
         <div className="flex flex-col w-full">
@@ -70,8 +95,14 @@ const AccountInfo: React.FC = () => {
                             </div>
 
                             <div className="dashboard__main-content">
-                                <h4 className="text-brand-dark text-xl font-semibold mb-1">Welcome Luhan Nguyen.</h4>
-                                <p className="text-base  mb-0">yourexample@email.com · Los Angeles, CA</p>
+                                <h4 className="text-brand-dark text-xl font-semibold mb-1">
+                                    Welcome {fullName || email || 'back'}.
+                                </h4>
+                                <p className="text-base  mb-0">
+                                    {[email, (u.locationName as string) || (u.city as string)]
+                                        .filter(Boolean)
+                                        .join(' · ')}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -97,7 +128,6 @@ const AccountInfo: React.FC = () => {
                                     required: 'User name is required',
                                 })}
                                 variant="solid"
-                                defaultValue="Luhan Nguyen"
                                 className="w-full sm:w-1/2 px-1.5 md:px-2.5"
                                 error={errors.userName?.message}
                             />
@@ -114,7 +144,6 @@ const AccountInfo: React.FC = () => {
                                     },
                                 })}
                                 variant="solid"
-                                defaultValue="yourexample@email.com"
                                 className="w-full sm:w-1/2 px-1.5 md:px-2.5"
                                 error={errors.email?.message}
                             />
@@ -159,7 +188,6 @@ const AccountInfo: React.FC = () => {
                                     },
                                 })}
                                 variant="solid"
-                                defaultValue="003 800 6890"
                                 className="w-full sm:w-1/2 px-1.5 md:px-2.5"
                                 error={errors.phoneNumber?.message}
                             />

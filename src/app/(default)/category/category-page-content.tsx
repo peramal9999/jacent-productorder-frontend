@@ -7,7 +7,11 @@ import Filters from '@/components/filter/filters';
 import DrawerFilter from '@/components/category/drawer-filter';
 import Pagination from '@/components/shared/pagination';
 import { GrNext, GrPrevious } from 'react-icons/gr';
-import { useGetProductsPageQuery, type GetProductsPageArgs } from '@/store/productsApi';
+import {
+    useGetProductsPageQuery,
+    useGetFilterOptionsQuery,
+    type GetProductsPageArgs,
+} from '@/store/productsApi';
 import { usePathname } from 'next/navigation';
 import useQueryParam from '@/utils/use-query-params';
 import { useFilterStore, getSelectedCategoryIds } from '@/stores/useFilterStore';
@@ -22,10 +26,13 @@ export default function CategoryPageContent() {
     );
 
     const selectedCategories = useFilterStore((s) => s.selectedCategories);
+    const priceRange = useFilterStore((s) => s.priceRange);
     const selectedCategoryIds = useMemo(
         () => getSelectedCategoryIds(selectedCategories),
         [selectedCategories],
     );
+    const [priceRangeMin, priceRangeMax] = priceRange;
+    const hasPriceFilter = priceRangeMin > 0 || priceRangeMax > 0;
 
     // The filter store stores either the literal "all" or commodity ids
     // (numeric strings) keyed by the commodities returned from
@@ -37,6 +44,26 @@ export default function CategoryPageContent() {
                 (id) => id !== 'all' && /^\d+$/.test(id),
             ),
         [selectedCategoryIds],
+    );
+
+    // Resolve each selected commodityId to its display name (e.g. "AIR
+    // FILTERS") so the POST body can carry both the numeric ids and the
+    // human-readable commodity strings the backend expects.
+    const { data: filterOptions, isLoading: filterOptionsLoading } =
+        useGetFilterOptionsQuery();
+    const commodityNameById = useMemo(() => {
+        const map = new Map<string, string>();
+        filterOptions?.commodities?.forEach((c) =>
+            map.set(String(c.commodityId), c.commodity),
+        );
+        return map;
+    }, [filterOptions]);
+    const commodities = useMemo(
+        () =>
+            commodityIds
+                .map((id) => commodityNameById.get(String(id)))
+                .filter((n): n is string => !!n),
+        [commodityIds, commodityNameById],
     );
 
     // Single source of truth for what we ask the server. Combining
@@ -56,6 +83,8 @@ export default function CategoryPageContent() {
         sort: newQuery.sort_by ?? null,
         ids: commodityIds,
         size: pageSize,
+        priceMin: priceRangeMin,
+        priceMax: priceRangeMax,
     });
     const lastFingerprint = useRef(filterFingerprint);
     if (lastFingerprint.current !== filterFingerprint) {
@@ -63,34 +92,62 @@ export default function CategoryPageContent() {
         if (currentPage !== 1) setCurrentPage(1);
     }
 
+    // Same pagination flow regardless of whether a category filter is
+    // active — server pages the result set by pageNo/pageSize either way.
+    const hasFilter = commodityIds.length > 0 || hasPriceFilter;
+    const hasCommodityFilter = commodityIds.length > 0;
     const queryArgs: GetProductsPageArgs = useMemo(
         () => ({
             pageNo: currentPage - 1,
             pageSize,
             sortBy: newQuery.sort_by,
-            commodityId: commodityIds,
+            commodityIds,
+            commodities,
+            priceRangeMin,
+            priceRangeMax,
         }),
-        [currentPage, pageSize, newQuery.sort_by, commodityIds],
+        [
+            currentPage,
+            pageSize,
+            newQuery.sort_by,
+            commodityIds,
+            commodities,
+            priceRangeMin,
+            priceRangeMax,
+        ],
     );
 
     const {
         data: page,
         currentData,
         isFetching,
+        isLoading: productsLoading,
     } = useGetProductsPageQuery(queryArgs);
 
-    // Use `currentData` (data for the *current* args only) for the grid
-    // — RTK Query's `data` keeps the previous successful result while a
-    // refetch is in flight, which would briefly show records from the
-    // previous (possibly larger) page or filter. Cap to the selected
-    // page size as a final safety net.
-    const products = useMemo(
-        () =>
-            currentData?.content
-                ? currentData.content.slice(0, pageSize)
-                : undefined,
-        [currentData?.content, pageSize],
-    );
+    // Show one shared loading state until BOTH the catalogue and the
+    // filter facets have arrived, so the sidebar and the grid appear
+    // together on the initial home-page load.
+    const initialLoading = productsLoading || filterOptionsLoading;
+
+    // Unfiltered (no commodityId selected): show exactly what the server
+    // returned — duplicates are fine, since they reflect multi-store
+    // stocking on the unfiltered feed.
+    // Filtered (commodityId selected): dedupe by id and cap to the
+    // selected page size, so a buggy/duplicated row can't add a phantom
+    // card to the filtered grid.
+    const products = useMemo(() => {
+        if (!currentData?.content) return undefined;
+        if (!hasCommodityFilter) return currentData.content.slice(0, pageSize);
+        const seen = new Set<string | number>();
+        const out = [];
+        for (const p of currentData.content) {
+            if (p?.id == null || seen.has(p.id)) continue;
+            seen.add(p.id);
+            out.push(p);
+            if (out.length >= pageSize) break;
+        }
+        return out;
+    }, [currentData?.content, hasCommodityFilter, pageSize]);
     const totalElements = (currentData ?? page)?.totalElements ?? 0;
     const showPagination = totalElements > 0;
 
@@ -104,8 +161,9 @@ export default function CategoryPageContent() {
                 <TopBar viewAs={viewAs} setViewAs={setViewAs} />
 
                 <ProductGrid
+                    key={filterFingerprint}
                     products={products}
-                    isLoading={isFetching}
+                    isLoading={isFetching || initialLoading}
                     skeletonCount={pageSize}
                     viewAs={viewAs}
                 />

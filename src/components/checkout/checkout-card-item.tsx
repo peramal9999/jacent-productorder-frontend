@@ -22,9 +22,17 @@ export const CheckoutItem: React.FC<{ item: Item }> = ({ item }) => {
           height={64}
         />
       </div>
-        <h6 className="font-normal text-15px text-brand-dark ltr:pl-3 rtl:pr-3">
-            <span className="font-medium">{item.quantity} x </span> {item.name}
-        </h6>
+        <div className="ltr:pl-3 rtl:pr-3 min-w-0 flex-1">
+            <h6 className="font-normal text-15px text-brand-dark truncate">
+                <span className="font-medium">{item.quantity} x </span>
+                {item.itemDesc ?? item.itemName ?? item.name}
+            </h6>
+            {(item.itemId ?? item.id) != null && (
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                    Item ID: {String(item.itemId ?? item.id)}
+                </p>
+            )}
+        </div>
         <div className="w-24 text-end font-semibold ltr:ml-auto rtl:mr-auto text-15px text-brand-dark ltr:pl-2 rtl:pr-2 shrink-0">
         {price}
       </div>

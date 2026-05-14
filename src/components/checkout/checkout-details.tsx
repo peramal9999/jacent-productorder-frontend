@@ -4,12 +4,14 @@ import { useState } from 'react';
 import Heading from '@/components/shared/heading';
 import ContactForm from '@/components/checkout/contact-form';
 import { CircleUserRound } from 'lucide-react';
+import { useMeQuery } from '@/store/authApi';
 
 type CheckoutStep = 'contact';
 
 const CheckoutDetails: React.FC = () => {
     const [activeStep, setActiveStep] = useState<CheckoutStep>('contact');
     const [formData, setFormData] = useState<{ contact: any }>({ contact: null });
+    const { data: me } = useMeQuery();
 
     const handleContactComplete = (data: any) => {
         setFormData({ contact: data });
@@ -17,13 +19,34 @@ const CheckoutDetails: React.FC = () => {
         // card handles order placement.
     };
 
+    const fullName = [me?.firstName, me?.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+    const displayName =
+        (me?.name as string | undefined) ||
+        fullName ||
+        (me?.email as string | undefined) ||
+        '';
+    const displayPhone =
+        (me?.phone as string | undefined) ??
+        (me?.phoneNumber as string | undefined) ??
+        '';
+    const sub = [displayName, displayPhone].filter(Boolean).join(' ');
+
     const steps = [
         {
             id: 1,
             icon: <CircleUserRound strokeWidth={1} size={30} />,
             title: 'Contact information',
-            sub: 'Luhan Nguyen +855 - 445 - 6644',
-            component: <ContactForm onComplete={handleContactComplete} />,
+            sub: sub || (me?.email as string | undefined) || '',
+            component: (
+                <ContactForm
+                    onComplete={handleContactComplete}
+                    defaultPhone={displayPhone}
+                    defaultEmail={(me?.email as string | undefined) ?? ''}
+                />
+            ),
             key: 'contact' as CheckoutStep,
         },
     ];

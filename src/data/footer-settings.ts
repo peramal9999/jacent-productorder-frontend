@@ -7,32 +7,32 @@ export const footerSettings = {
                 {
                     id: 1,
                     title: 'About us',
-                    path: '/',
+                    // path: '/',
                 },
                 {
                     id: 2,
                     title: 'Contact us',
-                    path: '/contact-us',
+                    // path: '/contact-us',
                 },
                 {
                     id: 3,
                     title: 'Privacy Policy',
-                    path: '/privacy',
+                    // path: '/privacy',
                 },
                 {
                     id: 4,
                     title: 'Terms & Condition',
-                    path: '/terms',
+                    // path: '/terms',
                 },
                 {
                     id: 5,
                     title: 'Checkout',
-                    path: '/checkout',
+                    // path: '/checkout',
                 },
                 {
                     id: 6,
                     title: 'Faq',
-                    path: '/faq',
+                    // path: '/faq',
                 },
             ],
         },

@@ -55,17 +55,9 @@ const QuantityInput: React.FC<QuantityInputProps> = ({
     };
 
     const handleTyping = (raw: string) => {
-        // Only digits.
-        const digits = raw.replace(/[^0-9]/g, '');
-        setText(digits);
-        // If the user has a valid number, push it to the cart immediately.
-        if (digits.length > 0) {
-            const n = parseInt(digits, 10);
-            if (!Number.isNaN(n)) {
-                const clamped = clamp(n);
-                emit(clamped);
-            }
-        }
+        // Only digits. Do NOT emit yet — each keystroke would otherwise fire a
+        // PUT /v1/cart/:id. Commit on Enter or blur instead.
+        setText(raw.replace(/[^0-9]/g, ''));
     };
 
     const handleBlur = () => {

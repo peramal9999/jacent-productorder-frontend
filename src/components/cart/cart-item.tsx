@@ -12,7 +12,7 @@ interface CartItemProps {
 }
 
 export function CartItem({ item }: CartItemProps) {
-	const {id,name, image, quantity, slug, product_type} = item ?? {};
+	const {id,name, image, quantity, slug, product_type, cartItemId} = item ?? {};
 
 	const {
 		removeItem,
@@ -48,9 +48,7 @@ export function CartItem({ item }: CartItemProps) {
 		<TableRow>
 			<TableCell>
 				<div className="w-20 h-20 relative">
-                    <Link
-                    href={{pathname:`${ROUTES.PRODUCT}/${slug}`}}
-                    className="block leading-5 transition-all text-brand-dark text-sm lg:text-15px hover:text-brand"
+                    <div className="block leading-5 transition-all text-brand-dark text-sm lg:text-15px hover:text-brand"
                     >
                         <Image
 						src={image ?? ''}
@@ -58,25 +56,27 @@ export function CartItem({ item }: CartItemProps) {
 						height={80}
 						alt={name || 'Product Image'}
 						className="object-contain" />
-                    </Link>
+                    </div>
 				</div>
 			</TableCell>
 			<TableCell>
-				    <Link
-                       href={{pathname:`${ROUTES.PRODUCT}/${slug}`}}
-                        className="block leading-5 transition-all text-brand-dark text-sm lg:text-15px hover:text-brand"
+				   
+				 <div className="block leading-5 transition-all text-brand-dark text-sm lg:text-15px"
                     >
-                        {item?.name}
-                    </Link>
-
+                        {item.itemDesc}
+                    </div>
+                    {item?.itemId != null && (
+                        <div className="text-xs text-gray-500 mt-1">
+                            Item ID: {String(item.itemId)}
+                        </div>
+                    )}
                    
-                    <Link
-						href={{pathname:`${ROUTES.PRODUCT}/${slug}`}}
-                        onClick={() => removeItem(id)}
+                    <div
+                        onClick={() => removeItem(cartItemId)}
                         className="mt-1 inline-block cursor-pointer transition-all text-gray-500 text-13px underline"
                     >
                         Remove
-                    </Link>
+                    </div>
 			</TableCell>
 			<TableCell>
 				<div className="space-s-2  mt-2 block mb-2">

@@ -96,6 +96,20 @@ export const authApi = createApi({
         me: builder.query<AuthUser, void>({
             query: () => ({ url: '/auth/me', method: 'GET' }),
             providesTags: ['Me'],
+            async onQueryStarted(_arg, { dispatch, queryFulfilled, getState }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    // Mirror the fetched profile into the auth slice so any
+                    // component reading `state.auth.user` stays in sync
+                    // (without forcing every component onto useMeQuery).
+                    const token =
+                        (getState() as { auth?: { token?: string | null } }).auth
+                            ?.token ?? '';
+                    if (token) dispatch(setCredentials({ token, user: data }));
+                } catch {
+                    /* RTK Query surfaces the error to the caller */
+                }
+            },
         }),
 
         /**

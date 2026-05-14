@@ -1,22 +1,39 @@
 'use client';
 
 import cn from 'classnames';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from '@/components/shared/link';
 import { colorMap } from '@/data/color-settings';
 import { usePanel } from '@/hooks/use-panel';
-import { useOrderStore } from '@/stores/useOrderStore';
+import { useGetOrderByIdQuery, type Order } from '@/store/ordersApi';
 import { useIsMounted } from '@/utils/use-is-mounted';
 import Loading from '@/components/shared/loading';
 import { ROUTES } from '@/utils/routes';
 
-export default function OrderInformation() {
+export default function OrderInformation({ orderId }: { orderId?: string }) {
     const { selectedColor } = usePanel();
     const mounted = useIsMounted();
-    // Read the most recent order from the local order store (the one just placed).
-    const latestOrder = useOrderStore((s) => s.orders[0]);
+    const { data: fetchedOrder, isLoading } = useGetOrderByIdQuery(orderId!, {
+        skip: !orderId,
+    });
 
-    if (!mounted) return <Loading />;
+    // Fallback to whatever the placeOrder mutation stashed in sessionStorage,
+    // so the confirmation page renders the just-placed order even when the
+    // backend doesn't return an id we can re-fetch.
+    const [stashedOrder, setStashedOrder] = useState<Order | null>(null);
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const raw = sessionStorage.getItem('lastPlacedOrder');
+            if (raw) setStashedOrder(JSON.parse(raw) as Order);
+        } catch {
+            /* ignore malformed sessionStorage */
+        }
+    }, []);
+
+    const latestOrder = fetchedOrder ?? stashedOrder;
+
+    if (!mounted || isLoading) return <Loading />;
 
     return (
         <div className="py-10 lg:py-10">
@@ -92,35 +109,66 @@ export default function OrderInformation() {
                         Order details
                     </h3>
                     {latestOrder ? (
-                        <dl className="text-sm space-y-2">
-                            <div className="flex justify-between">
-                                <dt className="text-gray-500">Order #</dt>
-                                <dd className="font-medium text-brand-dark">
-                                    {latestOrder.orderNumber}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between">
-                                <dt className="text-gray-500">Type</dt>
-                                <dd className="font-medium text-brand-dark">
-                                    {latestOrder.orderType || 'Wholesale'}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between">
-                                <dt className="text-gray-500">Items</dt>
-                                <dd className="font-medium text-brand-dark">
-                                    {latestOrder.items.reduce(
-                                        (n, i) => n + (i.quantity ?? 1),
-                                        0,
-                                    )}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between pt-2 border-t border-border-base">
+                        <div className="text-sm space-y-3">
+                            <dl className="space-y-2">
+                                <div className="flex justify-between">
+                                    <dt className="text-gray-500">Order #</dt>
+                                    <dd className="font-medium text-brand-dark">
+                                        {latestOrder.orderNumber}
+                                    </dd>
+                                </div>
+                                <div className="flex justify-between">
+                                    <dt className="text-gray-500">Type</dt>
+                                    <dd className="font-medium text-brand-dark">
+                                        {latestOrder.orderType || 'Wholesale'}
+                                    </dd>
+                                </div>
+                                <div className="flex justify-between">
+                                    <dt className="text-gray-500">Items</dt>
+                                    <dd className="font-medium text-brand-dark">
+                                        {latestOrder.items.reduce(
+                                            (n, i) => n + (i.quantity ?? 1),
+                                            0,
+                                        )}
+                                    </dd>
+                                </div>
+                            </dl>
+
+                            {latestOrder.items.length > 0 && (
+                                <ul className="pt-3 border-t border-border-base space-y-2">
+                                    {latestOrder.items.map((it) => (
+                                        <li
+                                            key={String(it.id)}
+                                            className="flex items-start gap-2"
+                                        >
+                                            <span className="font-medium text-brand-dark">
+                                                {it.quantity} ×
+                                            </span>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-brand-dark truncate">
+                                                    {it.name}
+                                                </p>
+                                                {(it.itemId ?? it.id) != null && (
+                                                    <p className="text-[11px] text-gray-500">
+                                                        Item ID: {String(it.itemId ?? it.id)}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <span className="font-medium text-brand-dark whitespace-nowrap">
+                                                ${(it.price * (it.quantity ?? 0)).toFixed(2)}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+
+                            <div className="flex justify-between pt-3 border-t border-border-base">
                                 <dt className="font-semibold text-brand-dark">Total</dt>
                                 <dd className="font-bold text-brand-dark">
                                     ${latestOrder.total.toFixed(2)}
                                 </dd>
                             </div>
-                        </dl>
+                        </div>
                     ) : (
                         <p className="text-sm text-gray-500">No order details available.</p>
                     )}
