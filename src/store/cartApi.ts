@@ -9,8 +9,11 @@ import { axiosBaseQuery } from '@/services/api/axiosConfig';
  */
 export interface CartItem {
     id: string | number;
-    productId?: string | number;
+    itemId?: string | number;
+    cartItemId?: string | number;
     name: string;
+    itemName?: string;
+    itemDesc?: string;
     slug?: string;
     image?: string;
     price: number;
@@ -29,6 +32,9 @@ export interface Cart {
 
 type RawCartItem = Partial<CartItem> & {
     cartItemId?: string | number;
+    itemId?: string | number;
+    itemName?: string;
+    itemDesc?: string;
     qty?: number;
 };
 
@@ -42,9 +48,12 @@ type RawCart =
 
 const normaliseItem = (raw: RawCartItem): CartItem => ({
     ...raw,
-    id: (raw.id ?? raw.cartItemId ?? raw.productId)!,
-    productId: raw.productId ?? raw.id,
-    name: raw.name ?? '',
+    id: (raw.id ?? raw.cartItemId ?? raw.itemId)!,
+    itemId: raw.itemId ?? raw.id,
+    cartItemId: raw.cartItemId ?? raw.id,
+    name: (raw.name ?? raw.itemName ?? '') as string,
+    itemName: (raw.itemName ?? raw.name) as string | undefined,
+    itemDesc: raw.itemDesc as string | undefined,
     price: Number(raw.price ?? raw.sale_price ?? 0),
     quantity: Number(raw.quantity ?? raw.qty ?? 0),
 });
@@ -70,12 +79,13 @@ const normaliseCart = (raw: RawCart | undefined): Cart => {
 };
 
 export interface AddCartItemRequest {
-    productId: string | number;
+    itemId: string | number;
     quantity: number;
     [key: string]: unknown;
 }
 
 export interface UpdateCartItemRequest {
+    itemId: string | number;
     quantity: number;
 }
 
@@ -86,7 +96,12 @@ export const cartApi = createApi({
     endpoints: (builder) => ({
         getCart: builder.query<Cart, void>({
             query: () => ({ url: '/v1/cart', method: 'GET' }),
-            transformResponse: (response: RawCart) => normaliseCart(response),
+            transformResponse: (response: RawCart) => {
+                console.log('[cartApi] GET /v1/cart raw response:', response);
+                const normalised = normaliseCart(response);
+                console.log('[cartApi] GET /v1/cart normalised:', normalised);
+                return normalised;
+            },
             providesTags: ['Cart'],
         }),
 
@@ -96,7 +111,12 @@ export const cartApi = createApi({
                 method: 'POST',
                 data: body,
             }),
-            transformResponse: (response: RawCart) => normaliseCart(response),
+            transformResponse: (response: RawCart) => {
+                console.log('[cartApi] POST /v1/cart/items raw response:', response);
+                const normalised = normaliseCart(response);
+                console.log('[cartApi] POST /v1/cart/items normalised:', normalised);
+                return normalised;
+            },
             invalidatesTags: ['Cart'],
         }),
 
@@ -104,9 +124,9 @@ export const cartApi = createApi({
             Cart,
             { cartItemId: string | number; data: UpdateCartItemRequest }
         >({
-            query: ({ cartItemId, data }) => ({
-                url: `/v1/cart/${cartItemId}`,
-                method: 'PUT',
+            query: ({ data }) => ({
+                url: `/v1/cart/items`,
+                method: 'POST',
                 data,
             }),
             transformResponse: (response: RawCart) => normaliseCart(response),

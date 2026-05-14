@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useUI } from '@/hooks/use-UI';
+import { useFilterStore } from '@/stores/useFilterStore';
 
 export const useFilterSidebar = () => {
     const { closeFilter } = useUI();
@@ -109,7 +110,9 @@ export const useFilters = () => {
         sizes: {},
     });
 
-    const [priceRange, setPriceRange] = useState<[number, number]>(DEFAULT_PRICE_RANGE);
+    const priceRange = useFilterStore((s) => s.priceRange);
+    const setPriceRange = useFilterStore((s) => s.setPriceRange);
+    void DEFAULT_PRICE_RANGE;
 
     const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 

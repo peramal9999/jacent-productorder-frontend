@@ -8,11 +8,14 @@ import {
 export const AUTH_TOKEN_COOKIE = 'auth_token';
 
 /**
- * Base URL for the auth/backend API. Falls back to localhost during dev.
- * Override per-environment with `NEXT_PUBLIC_AUTH_API_BASE_URL`.
+ * Base URL for the backend API. Defaults to the relative `/api` path so
+ * requests go through Next's rewrite (see `next.config.ts`) and look
+ * same-origin to the browser — this avoids CORS preflight entirely.
+ * Override with `NEXT_PUBLIC_AUTH_API_BASE_URL` only if you need to hit
+ * the backend directly (e.g. from a non-Next host).
  */
 export const AUTH_API_BASE_URL =
-    process.env.NEXT_PUBLIC_AUTH_API_BASE_URL ?? 'http://localhost:8081/api';
+    process.env.NEXT_PUBLIC_AUTH_API_BASE_URL ?? '/api';
 
 /**
  * Shared axios instance for backend calls. Centralizes:
@@ -44,12 +47,44 @@ axiosInstance.interceptors.request.use(
     (error) => Promise.reject(error),
 );
 
-// ----- Response interceptor: clear stale token on 401 -----
+// ----- Response interceptor: log the user out on 401 -----
+// On any 401 we tear down auth state (cookie + Redux slice + legacy zustand
+// UI flag) and bounce the user to /login. We skip this for the logout call
+// itself to avoid recursing.
+let isHandling401 = false;
 axiosInstance.interceptors.response.use(
     (response) => response,
-    (error: AxiosError) => {
-        if (error.response?.status === 401) {
+    async (error: AxiosError) => {
+        const status = error.response?.status;
+        const url = (error.config?.url ?? '').toString();
+        const isLogoutCall = url.includes('/auth/logout');
+
+        if (status === 401 && !isLogoutCall && !isHandling401) {
+            isHandling401 = true;
             removeSecureCookie(AUTH_TOKEN_COOKIE, { path: '/' });
+            try {
+                // Lazy imports to avoid circular module deps with the store.
+                const [{ store }, { logout }, { useUIStore }] = await Promise.all([
+                    import('@/store/store'),
+                    import('@/store/authSlice'),
+                    import('@/stores/useUIStore'),
+                ]);
+                store.dispatch(logout());
+                useUIStore.getState().unauthorize();
+            } catch {
+                // Non-fatal — cookie removal already happened above.
+            }
+            if (
+                typeof window !== 'undefined' &&
+                !window.location.pathname.startsWith('/login')
+            ) {
+                window.location.href = '/login';
+            }
+            // Reset the guard on the next tick so a future 401 (after a fresh
+            // login) still triggers the handler.
+            setTimeout(() => {
+                isHandling401 = false;
+            }, 0);
         }
         return Promise.reject(error);
     },

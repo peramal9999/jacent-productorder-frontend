@@ -14,6 +14,7 @@ import {useLogoutMutation} from "@/services/auth/use-logout";
 import Cookies from "js-cookie";
 import cn from "classnames";
 import {useAppSelector} from "@/store/hooks";
+import {useMeQuery} from "@/store/authApi";
 type Variant = 'Border' | 'Border-white' | 'Normal';
 interface UserDropdownProps {
     hideLabel?: boolean
@@ -26,8 +27,6 @@ interface UserDropdownProps {
 export default function AuthDropdown({
                                          variant='Normal',
                                          hideLabel,
-                                         userName = "Luhan Nguyen",
-                                         userLocation = "Los Angeles, CA",
                                          userImage = "/assets/images/support/3.png",
                                      }: UserDropdownProps) {
     const [isOpen, setIsOpen] = useState(false)
@@ -42,6 +41,22 @@ export default function AuthDropdown({
     // Source of truth, in order: Redux (set by RTK login) → cookie → legacy zustand flag.
     const isLoggedIn =
         reduxAuthenticated || !!Cookies.get('auth_token') || !!isAuthorized;
+
+    // Fetch the live user profile once logged in. RTK Query caches it,
+    // so other components (AccountInfo) reuse the same data.
+    const { data: me } = useMeQuery(undefined, { skip: !isLoggedIn });
+    const u = (me ?? {}) as Record<string, unknown>;
+    const userName =
+        (u.name as string) ||
+        [u.firstName, u.lastName].filter(Boolean).join(' ') ||
+        (u.userName as string) ||
+        (u.email as string) ||
+        '';
+    const userLocation =
+        (u.locationName as string) ||
+        (u.location as string) ||
+        (u.city as string) ||
+        '';
     
     const handleNavigation = (route: string) => {
         // Close the popover

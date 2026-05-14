@@ -4,6 +4,7 @@ import { authApi } from './authApi';
 import authReducer from './authSlice';
 import { cartApi } from './cartApi';
 import { productsApi } from './productsApi';
+import { ordersApi } from './ordersApi';
 
 export const store = configureStore({
     reducer: {
@@ -11,12 +12,14 @@ export const store = configureStore({
         [authApi.reducerPath]: authApi.reducer,
         [cartApi.reducerPath]: cartApi.reducer,
         [productsApi.reducerPath]: productsApi.reducer,
+        [ordersApi.reducerPath]: ordersApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(
             authApi.middleware,
             cartApi.middleware,
             productsApi.middleware,
+            ordersApi.middleware,
         ),
     devTools: process.env.NODE_ENV !== 'production',
 });

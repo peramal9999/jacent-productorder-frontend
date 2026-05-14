@@ -4,7 +4,12 @@ interface FilterState {
     selectedCategories: Record<string, boolean>;
     toggleCategory: (id: string, checked: boolean) => void;
     clearCategories: () => void;
+    priceRange: [number, number];
+    setPriceRange: (range: [number, number]) => void;
+    clearPriceRange: () => void;
 }
+
+export const DEFAULT_PRICE_RANGE: [number, number] = [0, 0];
 
 export const useFilterStore = create<FilterState>((set) => ({
     // "All" is selected by default — no category filter applied.
@@ -30,6 +35,9 @@ export const useFilterStore = create<FilterState>((set) => ({
             return { selectedCategories: next };
         }),
     clearCategories: () => set({ selectedCategories: { all: true } }),
+    priceRange: DEFAULT_PRICE_RANGE,
+    setPriceRange: (range) => set({ priceRange: range }),
+    clearPriceRange: () => set({ priceRange: DEFAULT_PRICE_RANGE }),
 }));
 
 export const getSelectedCategoryIds = (

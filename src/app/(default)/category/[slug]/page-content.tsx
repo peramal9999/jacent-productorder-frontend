@@ -5,10 +5,11 @@ import TopBar from "@/components/category/top-bar";
 import Filters from "@/components/filter/filters";
 import DrawerFilter from "@/components/category/drawer-filter";
 import {LIMITS} from "@/services/utils/limits";
-import {useGetAllProductsInfiniteQuery} from "@/store/productsApi";
+import {useGetProductsPageQuery} from "@/store/productsApi";
 import {usePathname} from "next/navigation";
 import useQueryParam from "@/utils/use-query-params";
 import {ProductMain} from "@/components/product/productListing/product-main";
+import { paginationSize } from '@/utils/constants';
 
 export default function PageContent() {
 	const [viewAs, setViewAs] = useState(Boolean(true));
@@ -18,11 +19,12 @@ export default function PageContent() {
 		`${process.env.NEXT_PUBLIC_WEBSITE_URL}${query}`,
 	);
 	void newQuery;
-	const limit = LIMITS.PRODUCTS_LIMITS;
-	const { data: pages, isLoading } = useGetAllProductsInfiniteQuery({
+	const limit = paginationSize;
+	const { data: page, isLoading } = useGetProductsPageQuery({
+		pageNo: 0,
 		pageSize: limit,
 	});
-	const data = pages?.pages?.[0]?.content;
+	const data = page?.content;
 	
 	
 	return (

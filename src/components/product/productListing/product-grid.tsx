@@ -21,11 +21,25 @@ interface ProductGridProps {
 export const ProductGrid: FC<ProductGridProps> = ({
     products,
     isLoading,
-    skeletonCount = 20,
+    skeletonCount = 25,
     viewAs,
     className = '',
 }) => {
     const showSkeleton = isLoading || !products;
+    const showEmpty = !showSkeleton && products!.length === 0;
+
+    if (showEmpty) {
+        return (
+            <div className="w-full bg-white rounded-md py-16 px-6 text-center">
+                <p className="text-base font-semibold text-brand-dark">
+                    No items found
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                    Try adjusting your filters or clearing your search.
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div
@@ -44,19 +58,21 @@ export const ProductGrid: FC<ProductGridProps> = ({
                           <ProductCardLoader uniqueKey={`product-skeleton-${idx}`} />
                       </div>
                   ))
-                : products?.map((product) =>
-                      viewAs ? (
-                          <ProductCard
-                              key={`product--key-${product.id}`}
-                              product={product}
-                          />
+                : products?.map((product, idx) => {
+                      // Composite key: itemId + commodity. The unfiltered feed
+                      // can list the same itemId under multiple commodities,
+                      // which would collide on `id` alone. `idx` is the final
+                      // tiebreaker when even the (id, commodity) pair repeats.
+                      const commodity =
+                          (product as { commodity?: string | number }).commodity ??
+                          '';
+                      const key = `product--key-${product.id}-${commodity}-${idx}`;
+                      return viewAs ? (
+                          <ProductCard key={key} product={product} />
                       ) : (
-                          <ProductCardList
-                              key={`product--key-${product.id}`}
-                              product={product}
-                          />
-                      ),
-                  )}
+                          <ProductCardList key={key} product={product} />
+                      );
+                  })}
         </div>
     );
 };

@@ -9,7 +9,7 @@ import {CheckoutCardFooterItem} from './checkout-card-footer-item';
 import {useRouter} from 'next/navigation';
 import {ROUTES} from '@/utils/routes';
 import {useIsMounted} from '@/utils/use-is-mounted';
-import {useOrderStore} from '@/stores/useOrderStore';
+import {usePlaceOrderMutation} from '@/store/ordersApi';
 import React from 'react';
 import Loading from "@/components/shared/loading";
 
@@ -18,8 +18,8 @@ const MIN_ORDER_AMOUNT = 250;
 const CheckoutCard: React.FC = () => {
     const router = useRouter();
 
-    const {items, total, isEmpty, resetCart} = useCart();
-    const placeOrder = useOrderStore((s) => s.placeOrder);
+    const {items, total, isEmpty} = useCart();
+    const [placeOrder, { isLoading: isPlacing }] = usePlaceOrderMutation();
     const {price: subtotal} = usePrice({
         amount: total,
         currencyCode: 'USD',
@@ -32,16 +32,34 @@ const CheckoutCard: React.FC = () => {
     });
 
     async function orderHeader() {
-        if (isEmpty || isBelowMinimum) return;
-        // Record the order in past-orders history so it shows up in /account-order
-        // and can be reordered later. Keep the existing confirmation flow.
-        placeOrder(items as any, total);
+        if (isEmpty || isBelowMinimum || isPlacing) return;
         try {
-            await resetCart();
+            const placed = await placeOrder({
+                items: items.map((i) => ({
+                    itemId: (i.itemId ?? i.id) as string | number,
+                    quantity: i.quantity ?? 0,
+                })),
+                total,
+            }).unwrap();
+            // Stash the placed order so the confirmation page can render it
+            // even when the backend doesn't echo back an id we can re-fetch
+            // (or when GET /v1/orders/{id} isn't ready yet).
+            try {
+                if (typeof window !== 'undefined') {
+                    sessionStorage.setItem(
+                        'lastPlacedOrder',
+                        JSON.stringify(placed),
+                    );
+                }
+            } catch {
+                /* sessionStorage may be unavailable — fall back to URL id */
+            }
+            router.push(
+                `${ROUTES.ORDER}${placed?.id ? `?orderId=${placed.id}` : ''}` as any,
+            );
         } catch (e) {
-            console.error('Failed to clear server cart:', e);
+            console.error('Failed to place order:', e);
         }
-        router.push(ROUTES.ORDER as any);
     }
     
     const checkoutFooter = [
@@ -98,13 +116,13 @@ const CheckoutCard: React.FC = () => {
                         
                         <Button
                             variant="dark"
-                            disabled={isBelowMinimum}
+                            disabled={isBelowMinimum || isPlacing}
                             className={cn(
                                 'w-full mt-8  uppercase  px-4 py-3 transition-all',
                             )}
                             onClick={orderHeader}
                         >
-                            Order Now
+                            {isPlacing ? 'Placing Order…' : 'Order Now'}
                         </Button>
                         {isBelowMinimum && (
                             <p className="mt-3 text-sm text-red-600 text-center">

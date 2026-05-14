@@ -7,12 +7,14 @@ import { ArrowLeft, RotateCcw, CalendarDays, Package } from 'lucide-react';
 import Button from '@/components/shared/button';
 import QuantityInput from '@/components/shared/quantity-input';
 import usePrice from '@/services/product/use-price';
+import {
+    useGetOrderByIdQuery,
+    type OrderItem,
+} from '@/store/ordersApi';
 import { useCart } from '@/hooks/use-cart';
-import { useOrderStore } from '@/stores/useOrderStore';
 import { ROUTES } from '@/utils/routes';
 import { useIsMounted } from '@/utils/use-is-mounted';
 import Loading from '@/components/shared/loading';
-import type { Item } from '@/services/utils/cartUtils';
 
 const formatDate = (iso: string) =>
     new Date(iso).toLocaleString('en-US', {
@@ -28,7 +30,7 @@ function OrderItemRow({
     quantity,
     onQuantityChange,
 }: {
-    item: Item;
+    item: OrderItem;
     quantity: number;
     onQuantityChange: (qty: number) => void;
 }) {
@@ -77,8 +79,9 @@ function OrderItemRow({
 export default function OrderDetailContent({ orderId }: { orderId: string }) {
     const mounted = useIsMounted();
     const router = useRouter();
-    const order = useOrderStore((s) => s.orders.find((o) => o.id === orderId));
+    const { data: order, isLoading } = useGetOrderByIdQuery(orderId);
     const { addItemWithQuantity } = useCart();
+    const [isReordering, setIsReordering] = useState(false);
 
     // Editable quantities (do NOT mutate the persisted order).
     const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -114,7 +117,7 @@ export default function OrderDetailContent({ orderId }: { orderId: string }) {
         currencyCode: 'USD',
     });
 
-    if (!mounted) {
+    if (!mounted || isLoading) {
         return <Loading />;
     }
 
@@ -138,15 +141,25 @@ export default function OrderDetailContent({ orderId }: { orderId: string }) {
         );
     }
 
-    const handleReorder = () => {
-        order.items.forEach((it) => {
-            const qty = quantities[String(it.id)] ?? (it.quantity ?? 1);
-            if (qty <= 0) return;
-            // Strip quantity from the spread so addItemWithQuantity's insert path
-            // uses the new quantity; existing-item path sums it in either way.
-            addItemWithQuantity({ ...it, quantity: undefined }, qty);
-        });
-        router.push(ROUTES.CART);
+    const handleReorder = async () => {
+        if (isReordering) return;
+        setIsReordering(true);
+        try {
+            // Add each order line to the cart at the (possibly edited)
+            // quantity. Run sequentially so the server can apply each
+            // POST /v1/cart/items in order without racing.
+            for (const it of order.items) {
+                const qty = quantities[String(it.id)] ?? it.quantity ?? 1;
+                if (qty <= 0) continue;
+                const itemId = (it.itemId ?? it.id) as string | number;
+                await addItemWithQuantity({ id: itemId }, qty);
+            }
+            router.push(ROUTES.CART);
+        } catch (e) {
+            console.error('Failed to reorder:', e);
+        } finally {
+            setIsReordering(false);
+        }
     };
 
     return (
@@ -178,11 +191,12 @@ export default function OrderDetailContent({ orderId }: { orderId: string }) {
                     </div>
                     <Button
                         variant="formButton"
+                        disabled={isReordering}
                         className="!px-5 !py-2.5 !text-sm inline-flex items-center gap-1.5 self-start md:self-auto"
                         onClick={handleReorder}
                     >
                         <RotateCcw className="w-4 h-4" />
-                        Reorder
+                        {isReordering ? 'Reordering…' : 'Reorder'}
                     </Button>
                 </div>
 

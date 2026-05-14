@@ -46,8 +46,8 @@ export const useCart = () => {
             if (quantity <= 0) {
                 throw new Error("cartQuantity can't be zero or less than zero");
             }
-            const productId = (item.productId ?? item.id) as string | number;
-            return addCartItem({ productId, quantity }).unwrap();
+            const itemId = (item.id ?? item.id) as string | number;
+            return addCartItem({ itemId: itemId, quantity }).unwrap();
         },
         [addCartItem],
     );
@@ -58,16 +58,20 @@ export const useCart = () => {
             payload: Partial<CartItem> & { quantity?: number },
         ) => {
             if (typeof payload.quantity !== 'number') return;
+            const row = items.find((i) => i.id === id);
+            const itemId = (payload.itemId ?? row?.itemId ?? id) as
+                | string
+                | number;
             return updateCartItem({
                 cartItemId: id,
-                data: { quantity: payload.quantity },
+                data: { itemId, quantity: payload.quantity },
             }).unwrap();
         },
-        [updateCartItem],
+        [updateCartItem, items],
     );
 
     const removeItem = useCallback(
-        async (id: CartItem['id']) => deleteCartItem(id).unwrap(),
+        async (cartItemId: CartItem['cartItemId']) => deleteCartItem(cartItemId as string).unwrap(),
         [deleteCartItem],
     );
 
@@ -77,35 +81,35 @@ export const useCart = () => {
 
     const useCartHelpers = () => {
         const isInCart = useCallback(
-            (productId: string | number) =>
+            (itemId: string | number) =>
                 items.some(
                     (i) =>
-                        (i.productId ?? i.id) === productId || i.id === productId,
+                        (i.itemId ?? i.id) === itemId || i.id === itemId,
                 ),
             // eslint-disable-next-line react-hooks/exhaustive-deps
             [items],
         );
 
         const getItemFromCart = useCallback(
-            (productId: string | number) =>
+            (itemId: string | number) =>
                 items.find(
                     (i) =>
-                        (i.productId ?? i.id) === productId || i.id === productId,
+                        (i.itemId ?? i.id) === itemId || i.id === itemId,
                 ),
             // eslint-disable-next-line react-hooks/exhaustive-deps
             [items],
         );
 
-        const isInStock = (productId: string | number) => {
-            const cartItem = getItemFromCart(productId);
+        const isInStock = (itemId: string | number) => {
+            const cartItem = getItemFromCart(itemId);
             if (cartItem && cartItem.stock !== undefined) {
                 return (cartItem.quantity ?? 0) < cartItem.stock;
             }
             return true;
         };
 
-        const outOfStock = (productId: string | number) =>
-            isInCart(productId) && !isInStock(productId);
+        const outOfStock = (itemId: string | number) =>
+            isInCart(itemId) && !isInStock(itemId);
 
         return { isInCart, getItemFromCart, isInStock, outOfStock };
     };

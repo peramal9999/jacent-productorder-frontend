@@ -40,6 +40,9 @@ const ProductImage: React.FC<ProductImageProps> = ({ product, outOfStock,variant
                 return 200;
         }
     }, [variant]);
+
+    const imageSrc = `https://jsmitemimage.s3.us-east-2.amazonaws.com/${product.id}.jpg`;
+
     
     return (
         <div className={cn("relative flex-shrink-0  z-1")}>
@@ -51,7 +54,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product, outOfStock,variant
                 )}
             >
                 <Image
-                    src={image?.thumbnail ?? productPlaceholder}
+                    src={imageSrc}
                     alt={name || "Product Image"}
                     width={imgSize}
                     height={imgSize}
@@ -64,18 +67,18 @@ const ProductImage: React.FC<ProductImageProps> = ({ product, outOfStock,variant
                 </span>
 
                 {/* Top seller flag (from product data) */}
-                {(product as { isTopSeller?: boolean }).isTopSeller && (
+                {/* {(product as { isTopSeller?: boolean }).isTopSeller && (
                     <span className="text-[10px] font-semibold text-brand-light uppercase inline-flex items-center gap-1 bg-amber-500 rounded-sm px-2 pt-1 pb-[3px]">
                         ★ Top seller
                     </span>
-                )}
+                )} */}
 
                 {/* Out-of-stock from inventory data (not just cart state) */}
-                {((product as { stockLevel?: number }).stockLevel === 0 || outOfStock) && (
+                {/* {((product as { stockLevel?: number }).stockLevel === 0 || outOfStock) && (
                     <span className="text-[10px] font-medium text-brand-light uppercase inline-block bg-brand-dark rounded-sm px-2.5 pt-1 pb-[3px]">
                         Out of Stock
                     </span>
-                )}
+                )} */}
             </div>
             
         </div>

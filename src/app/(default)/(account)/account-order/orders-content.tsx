@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Package, Inbox, CalendarDays, ArrowRight } from 'lucide-react';
 import usePrice from '@/services/product/use-price';
 import { ROUTES } from '@/utils/routes';
+import { useGetOrdersQuery, type Order } from '@/store/ordersApi';
 import {
-    useOrderStore,
     quarterOfDate,
     formatQuarterLabel,
     type QuarterKey,
@@ -23,11 +23,7 @@ const formatDate = (iso: string) =>
         minute: '2-digit',
     });
 
-function OrderRow({
-    order,
-}: {
-    order: ReturnType<typeof useOrderStore.getState>['orders'][number];
-}) {
+function OrderRow({ order }: { order: Order }) {
     const { price: totalFmt } = usePrice({ amount: order.total, currencyCode: 'USD' });
     const itemCount = order.items.reduce((sum, it) => sum + (it.quantity ?? 1), 0);
 
@@ -65,14 +61,9 @@ function OrderRow({
 
 export default function OrdersContent() {
     const mounted = useIsMounted();
-    const orders = useOrderStore((s) => s.orders);
-    const seedDemoOrders = useOrderStore((s) => s.seedDemoOrders);
+    const { data, isLoading } = useGetOrdersQuery();
+    const orders: Order[] = data ?? [];
     const [selectedQuarter, setSelectedQuarter] = useState<QuarterKey | 'all'>('all');
-
-    // Seed demo orders on first visit after rehydration.
-    useEffect(() => {
-        if (mounted) seedDemoOrders();
-    }, [mounted, seedDemoOrders]);
 
     const availableQuarters = useMemo<QuarterKey[]>(() => {
         const keys = new Set<QuarterKey>();
@@ -85,7 +76,7 @@ export default function OrdersContent() {
         return orders.filter((o) => quarterOfDate(o.createdAt) === selectedQuarter);
     }, [orders, selectedQuarter]);
 
-    if (!mounted) {
+    if (!mounted || isLoading) {
         return <Loading />;
     }
 
