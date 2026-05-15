@@ -189,8 +189,18 @@ export const ordersApi = createApi({
                 method: 'POST',
                 data: body,
             }),
-            transformResponse: (response: RawOrder | WrappedOrder) =>
-                normaliseOrder(response),
+            transformResponse: (
+                response: RawOrder | WrappedOrder | string,
+            ) => {
+                // POST /v1/orders returns just the new order id as a bare
+                // string (e.g. "b7bb496b-0854-452d-bdd0-1416f257c86f").
+                // Wrap it so downstream code can re-fetch the full order
+                // via GET /v1/orders/{id}.
+                if (typeof response === 'string') {
+                    return normaliseOrder({ id: response.trim() });
+                }
+                return normaliseOrder(response);
+            },
             invalidatesTags: [{ type: 'Orders', id: 'LIST' }],
             async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
                 try {

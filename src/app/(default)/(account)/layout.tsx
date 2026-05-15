@@ -22,10 +22,10 @@ const accountMenu = [
     //     name: 'Change Billing',
     // },
     
-    {
-        slug: ROUTES.CHANGE_PASSWORD,
-        name: 'Change password',
-    },
+    // {
+    //     slug: ROUTES.CHANGE_PASSWORD,
+    //     name: 'Change password',
+    // },
 ];
 
 export default async function AccountLayout({

@@ -158,4 +158,4 @@ const ProductCard: React.FC<ProductProps> = ({
     );
 };
 
-export default ProductCard;
+export default React.memo(ProductCard);

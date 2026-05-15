@@ -96,12 +96,7 @@ export const cartApi = createApi({
     endpoints: (builder) => ({
         getCart: builder.query<Cart, void>({
             query: () => ({ url: '/v1/cart', method: 'GET' }),
-            transformResponse: (response: RawCart) => {
-                console.log('[cartApi] GET /v1/cart raw response:', response);
-                const normalised = normaliseCart(response);
-                console.log('[cartApi] GET /v1/cart normalised:', normalised);
-                return normalised;
-            },
+            transformResponse: (response: RawCart) => normaliseCart(response),
             providesTags: ['Cart'],
         }),
 
@@ -111,12 +106,7 @@ export const cartApi = createApi({
                 method: 'POST',
                 data: body,
             }),
-            transformResponse: (response: RawCart) => {
-                console.log('[cartApi] POST /v1/cart/items raw response:', response);
-                const normalised = normaliseCart(response);
-                console.log('[cartApi] POST /v1/cart/items normalised:', normalised);
-                return normalised;
-            },
+            transformResponse: (response: RawCart) => normaliseCart(response),
             invalidatesTags: ['Cart'],
         }),
 

@@ -3,9 +3,11 @@ import {
     axiosBaseQuery,
     AUTH_TOKEN_COOKIE,
 } from '@/services/api/axiosConfig';
-import { setCredentials, logout, type AuthUser } from './authSlice';
+import { setCredentials, type AuthUser } from './authSlice';
 import { useUIStore } from '@/stores/useUIStore';
 import { setSecureCookie } from '@/utils/secure-storage';
+import { clearClientAuthState } from './auth-cleanup';
+import type { AppDispatch } from './store';
 
 export interface LoginRequest {
     email: string;
@@ -144,8 +146,7 @@ export const authApi = createApi({
                 } catch {
                     // Refresh failed (likely expired beyond grace period).
                     // Sign the user out so the middleware bounces them to /login.
-                    dispatch(logout());
-                    useUIStore.getState().unauthorize();
+                    clearClientAuthState(dispatch as AppDispatch);
                 }
             },
         }),
@@ -166,8 +167,7 @@ export const authApi = createApi({
                     // with the client-side cleanup below.
                     console.warn('Backend /auth/logout failed:', e);
                 }
-                dispatch(logout());
-                useUIStore.getState().unauthorize();
+                clearClientAuthState(dispatch as AppDispatch);
             },
             invalidatesTags: ['Me'],
         }),

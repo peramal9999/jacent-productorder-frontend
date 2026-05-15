@@ -10,7 +10,7 @@ import {useRouter} from 'next/navigation';
 import {ROUTES} from '@/utils/routes';
 import {useIsMounted} from '@/utils/use-is-mounted';
 import {usePlaceOrderMutation} from '@/store/ordersApi';
-import React from 'react';
+import React, {useMemo} from 'react';
 import Loading from "@/components/shared/loading";
 
 const MIN_ORDER_AMOUNT = 250;
@@ -41,6 +41,7 @@ const CheckoutCard: React.FC = () => {
                 })),
                 total,
             }).unwrap();
+            console.log("placed",placed);
             // Stash the placed order so the confirmation page can render it
             // even when the backend doesn't echo back an id we can re-fetch
             // (or when GET /v1/orders/{id} isn't ready yet).
@@ -62,18 +63,13 @@ const CheckoutCard: React.FC = () => {
         }
     }
     
-    const checkoutFooter = [
-        {
-            id: 1,
-            name: 'Subtotal',
-            price: subtotal,
-        },
-        {
-            id: 2,
-            name: 'Order total',
-            price: subtotal,
-        },
-    ];
+    const checkoutFooter = useMemo(
+        () => [
+            { id: 1, name: 'Subtotal', price: subtotal },
+            { id: 2, name: 'Order total', price: subtotal },
+        ],
+        [subtotal],
+    );
     
     const mounted = useIsMounted();
     

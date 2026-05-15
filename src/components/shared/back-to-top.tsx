@@ -1,6 +1,5 @@
 "use client"
 import {IoIosArrowUp} from 'react-icons/io';
-import {debounce} from 'lodash';
 import React, {useEffect, useState} from 'react';
 import cn from "classnames";
 
@@ -9,29 +8,33 @@ const BackToTopButton: React.FC = () => {
     const [scrollProgress, setScrollProgress] = useState(0);
 
     useEffect(() => {
-        const handleScrollListener = debounce(() => {
-            const currentScrollY = window.scrollY;
-            const windowHeight = window.innerHeight;
-            const totalScrollHeight = document.body.scrollHeight;
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-            // Calculate scroll progress as a percentage (0 to 100)
-            const scrollableHeight = totalScrollHeight - windowHeight;
-            const progress = scrollableHeight > 0 ? (currentScrollY / scrollableHeight) * 100 : 0;
-            setScrollProgress(Math.min(Math.max(progress, 0), 100));
+        const handleScrollListener = () => {
+            if (timeoutId !== null) return;
+            timeoutId = setTimeout(() => {
+                timeoutId = null;
+                const currentScrollY = window.scrollY;
+                const windowHeight = window.innerHeight;
+                const totalScrollHeight = document.body.scrollHeight;
 
-            // Show/hide button based on scroll position
-            if (currentScrollY <= 100) {
-                setIsShow(false);
-                return;
-            }
+                const scrollableHeight = totalScrollHeight - windowHeight;
+                const progress = scrollableHeight > 0 ? (currentScrollY / scrollableHeight) * 100 : 0;
+                setScrollProgress(Math.min(Math.max(progress, 0), 100));
 
-            setIsShow(true);
-        }, 100);
+                if (currentScrollY <= 100) {
+                    setIsShow(false);
+                    return;
+                }
+                setIsShow(true);
+            }, 100);
+        };
 
-        window.addEventListener('scroll', handleScrollListener);
+        window.addEventListener('scroll', handleScrollListener, { passive: true });
 
         return () => {
             window.removeEventListener('scroll', handleScrollListener);
+            if (timeoutId !== null) clearTimeout(timeoutId);
         };
     }, []);
 

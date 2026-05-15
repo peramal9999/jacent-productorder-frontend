@@ -1,4 +1,4 @@
-import React, {useMemo} from "react";
+import React from "react";
 import cn from "classnames";
 import Image from "@/components/shared/image";
 import { Product } from "@/services/types";
@@ -15,6 +15,13 @@ interface ProductImageProps {
     variant?: string;
 }
 
+const IMG_SIZE_BY_VARIANT: Record<string, number> = {
+    list: 280,
+    bestdeal: 300,
+    furni: 300,
+};
+const DEFAULT_IMG_SIZE = 200;
+
 const ProductImage: React.FC<ProductImageProps> = ({ product, outOfStock,variant="default" }) => {
     const { image, name, sale_price, price } = product;
     const { openModal } = useModal();
@@ -29,17 +36,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ product, outOfStock,variant
         openModal("PRODUCT_VIEW", product);
     };
     
-    const imgSize = useMemo(() => {
-        switch (variant) {
-            case 'list':
-                return 280;
-            case 'bestdeal':
-            case 'furni':
-                return 300;
-            default:
-                return 200;
-        }
-    }, [variant]);
+    const imgSize = IMG_SIZE_BY_VARIANT[variant] ?? DEFAULT_IMG_SIZE;
 
     const imageSrc = `https://jsmitemimage.s3.us-east-2.amazonaws.com/${product.id}.jpg`;
 

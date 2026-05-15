@@ -51,6 +51,7 @@ export const useLoginForm = (isPopup: boolean = true) => {
 
     const onSubmit = async ({ email, password, remember_me }: LoginInputType) => {
         setLoginError(null);
+        setIsLoggingIn(true);
         try {
             // unwrap() turns the RTK Query result into a thrown error on failure.
             await loginMutation({ email, password, remember_me }).unwrap();
@@ -60,14 +61,12 @@ export const useLoginForm = (isPopup: boolean = true) => {
                 formMethods.reset();
                 return;
             }
-            // Show splash, then navigate to /category.
-            setIsLoggingIn(true);
-            setTimeout(() => {
-                navigate.push(ROUTES.CATEGORY);
-                formMethods.reset();
-            }, SPLASH_DURATION_MS);
+            navigate.push(ROUTES.CATEGORY);
+            formMethods.reset();
         } catch (err) {
             setLoginError(extractErrorMessage(err));
+        } finally {
+            setIsLoggingIn(false);
         }
     };
 

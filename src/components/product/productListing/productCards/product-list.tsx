@@ -49,4 +49,4 @@ const ProductCardList: React.FC<ProductProps> = ({product, className,variant = "
     );
 };
 
-export default ProductCardList;
+export default React.memo(ProductCardList);

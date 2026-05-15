@@ -1,4 +1,5 @@
 'use client'
+import React from 'react';
 import Link from '@/components/shared/link';
 import Image from '@/components/shared/image';
 import { useCart } from '@/hooks/use-cart';
@@ -90,4 +91,4 @@ const CartItemDrawer: React.FC<CartItemProps> = ({item}) => {
     );
 };
 
-export default CartItemDrawer;
+export default React.memo(CartItemDrawer);

@@ -144,7 +144,9 @@ export default function AuthDropdown({
                 <div className="pt-4">
                     {/* User Profile */}
                     <div className="flex items-center gap-3 px-4 pb-4 border-b border-gray-100 ">
-                        <img src={userImage} alt={userName} className="w-12 h-12 rounded-full object-cover"/>
+                        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
+                            <User className="w-6 h-6"/>
+                        </div>
                         <div>
                             <h3 className="font-medium text-brand-dark">{userName}</h3>
                             <p className="text-sm text-gray-500">{userLocation}</p>

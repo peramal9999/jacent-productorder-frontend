@@ -24,7 +24,7 @@ const CartButton: React.FC<CartButtonProps> = ({
                                                    variant='Normal',
                                                }) => {
     const {openDrawer, setDrawerView} = useUI();
-    const {totalItems} = useCart();
+    const {totalUniqueItems} = useCart();
     
     function handleCartOpen() {
         setDrawerView('CART_SIDEBAR');
@@ -56,7 +56,7 @@ const CartButton: React.FC<CartButtonProps> = ({
                     <CartIcon className={cn(iconClassName, sizeIcon)}/>
                     </div>
                     <span className="cart-counter-badge  h-[18px] min-w-[18px] leading-6 rounded-full flex items-center justify-center bg-red-600 text-brand-light absolute -top-1 ltr:left-6 rtl:right-6 text-11px">
-                      {totalItems}
+                      {totalUniqueItems}
                     </span>
                 </div>
                 {!hideLabel && (
