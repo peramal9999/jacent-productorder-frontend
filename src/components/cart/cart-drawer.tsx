@@ -10,6 +10,8 @@ import Heading from '@/components/shared/heading';
 import Text from '@/components/shared/text';
 import {X} from "lucide-react";
 
+const MIN_ORDER_AMOUNT = 250;
+
 export default function CartDrawer() {
     const {closeDrawer} = useUI();
     const {items, total, isEmpty} = useCart();
@@ -17,6 +19,8 @@ export default function CartDrawer() {
         amount: total,
         currencyCode: 'USD',
     });
+    const isBelowMinimum = total < MIN_ORDER_AMOUNT;
+    const amountRemaining = Math.max(MIN_ORDER_AMOUNT - total, 0);
     return (
         <div className="flex flex-col  w-full h-full px-5 md:px-8 pt-0">
             <div
@@ -55,21 +59,37 @@ export default function CartDrawer() {
                                     {cartTotal}
                                 </div>
                             </div>
-                            <div className="grid grid-col1 md:grid-cols-2 gap-5" onClick={closeDrawer}>
+                            <div className="grid grid-col1 md:grid-cols-2 gap-5" onClick={isBelowMinimum ? undefined : closeDrawer}>
                                 <Link
                                     href={ROUTES.CART}
                                     variant={"button-border"}
                                 >
                                     <span className="py-0.5">View Cart</span>
                                 </Link>
-                                
-                                <Link
-                                    href={ROUTES.CHECKOUT}
-                                    variant={"button-primary"}
-                                >
-                                    <span className="py-0.5">Check Out</span>
-                                </Link>
+
+                                {isBelowMinimum ? (
+                                    <button
+                                        type="button"
+                                        disabled
+                                        aria-disabled="true"
+                                        className="w-full bg-gray-300 text-white uppercase font-semibold px-4 py-3 rounded cursor-not-allowed"
+                                    >
+                                        <span className="py-0.5">Check Out</span>
+                                    </button>
+                                ) : (
+                                    <Link
+                                        href={ROUTES.CHECKOUT}
+                                        variant={"button-primary"}
+                                    >
+                                        <span className="py-0.5">Check Out</span>
+                                    </Link>
+                                )}
                             </div>
+                            {isBelowMinimum && (
+                                <p className="mt-3 text-sm text-red-600 text-center">
+                                    Minimum order amount is ${MIN_ORDER_AMOUNT.toFixed(2)}. Please add ${amountRemaining.toFixed(2)} more to place your order.
+                                </p>
+                            )}
                         </div>
                     </>
                 ) : (

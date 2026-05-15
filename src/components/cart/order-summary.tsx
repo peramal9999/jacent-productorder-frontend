@@ -2,12 +2,17 @@ import React from 'react';
 import Link from '@/components/shared/link';
 import { ROUTES } from '@/utils/routes';
 
+const MIN_ORDER_AMOUNT = 250;
+
 interface OrderSummaryProps {
 	subtotal: number;
 	total: number;
 }
 
 export function OrderSummary({ subtotal, total }: OrderSummaryProps) {
+	const isBelowMinimum = total < MIN_ORDER_AMOUNT;
+	const amountRemaining = Math.max(MIN_ORDER_AMOUNT - total, 0);
+
 	return (
 		<div className={' p-5 md:p-8  bg-white  rounded-lg border border-border-base'}>
 			<div className="flex items-center justify-between pb-3 mb-3 border-b border-border-base">
@@ -27,9 +32,25 @@ export function OrderSummary({ subtotal, total }: OrderSummaryProps) {
 			</div>
 
 			<div className={'mt-6'}>
-				<Link href={ROUTES.CHECKOUT} variant={'button-black'} className="w-full">
-					<span className="py-0.5">Check Out</span>
-				</Link>
+				{isBelowMinimum ? (
+					<button
+						type="button"
+						disabled
+						aria-disabled="true"
+						className="w-full bg-gray-300 text-white uppercase font-semibold px-4 py-3 rounded cursor-not-allowed"
+					>
+						<span className="py-0.5">Check Out</span>
+					</button>
+				) : (
+					<Link href={ROUTES.CHECKOUT} variant={'button-black'} className="w-full">
+						<span className="py-0.5">Check Out</span>
+					</Link>
+				)}
+				{isBelowMinimum && (
+					<p className="mt-3 text-sm text-red-600 text-center">
+						Minimum order amount is ${MIN_ORDER_AMOUNT.toFixed(2)}. Please add ${amountRemaining.toFixed(2)} more to place your order.
+					</p>
+				)}
 			</div>
 		</div>
 	);
