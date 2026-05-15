@@ -9,6 +9,7 @@ import {
     useDeleteCartMutation,
     type CartItem,
 } from '@/store/cartApi';
+import { useAppSelector } from '@/store/hooks';
 
 export type Item = CartItem;
 
@@ -19,7 +20,8 @@ export type Item = CartItem;
  * lives on the backend.
  */
 export const useCart = () => {
-    const { data: cart } = useGetCartQuery();
+    const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
+    const { data: cart } = useGetCartQuery(undefined, { skip: !isAuthenticated });
     const [addCartItem] = useAddCartItemMutation();
     const [updateCartItem] = useUpdateCartItemMutation();
     const [deleteCartItem] = useDeleteCartItemMutation();
@@ -46,7 +48,7 @@ export const useCart = () => {
             if (quantity <= 0) {
                 throw new Error("cartQuantity can't be zero or less than zero");
             }
-            const itemId = (item.id ?? item.id) as string | number;
+            const itemId = (item.itemId ?? item.id) as string | number;
             return addCartItem({ itemId: itemId, quantity }).unwrap();
         },
         [addCartItem],

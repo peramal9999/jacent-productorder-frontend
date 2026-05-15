@@ -15,6 +15,7 @@ import { useCart } from '@/hooks/use-cart';
 import { ROUTES } from '@/utils/routes';
 import { useIsMounted } from '@/utils/use-is-mounted';
 import Loading from '@/components/shared/loading';
+import { ImageOff } from 'lucide-react';
 
 const formatDate = (iso: string) =>
     new Date(iso).toLocaleString('en-US', {
@@ -34,6 +35,7 @@ function OrderItemRow({
     quantity: number;
     onQuantityChange: (qty: number) => void;
 }) {
+    const [imgErrored, setImgErrored] = useState(!item.image);
     const { price: lineTotal } = usePrice({
         amount: item.price * quantity,
         currencyCode: 'USD',
@@ -46,12 +48,24 @@ function OrderItemRow({
     return (
         <div className="flex items-center gap-3 md:gap-4 py-4 border-b border-border-base last:border-0">
             <div className="relative w-16 h-16 shrink-0 bg-gray-50 rounded overflow-hidden">
-                {item.image && (
-                    // eslint-disable-next-line @next/next/no-img-element
+                {imgErrored ? (
+                    <div
+                        className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-gray-50 text-gray-400"
+                        aria-label="No image found"
+                        role="img"
+                    >
+                        <ImageOff className="w-5 h-5" strokeWidth={1.25} />
+                        <span className="text-[8px] font-medium uppercase tracking-wide">
+                            No image
+                        </span>
+                    </div>
+                ) : (
+                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                         src={item.image}
                         alt={item.name}
                         className="w-full h-full object-cover"
+                        onError={() => setImgErrored(true)}
                     />
                 )}
             </div>

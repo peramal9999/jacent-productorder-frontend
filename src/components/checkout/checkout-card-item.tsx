@@ -4,13 +4,13 @@ import Image from '@/components/shared/image';
 import usePrice from '@/services/product/use-price';
 import React from "react";
 
-export const CheckoutItem: React.FC<{ item: Item }> = ({ item }) => {
+const CheckoutItemComponent: React.FC<{ item: Item }> = ({ item }) => {
   const unitAmount = item.sale_price ?? item.price ?? 0;
   const { price } = usePrice({
     amount: unitAmount * (item.quantity ?? 0),
     currencyCode: 'USD',
   });
-  
+
   return (
     <div className="flex items-center">
       <div className="flex w-16 h-16 border rounded-md border-border-base shrink-0">
@@ -39,3 +39,5 @@ export const CheckoutItem: React.FC<{ item: Item }> = ({ item }) => {
     </div>
   );
 };
+
+export const CheckoutItem = React.memo(CheckoutItemComponent);

@@ -137,10 +137,12 @@ const LoginForm: React.FC<LoginFormProps> = ({
 							<div className="relative">
 								<Button
 									type="submit"
+									disabled={isLoggingIn}
+									loading={isLoggingIn}
 									className="w-full mt-2 tracking-normal h-11 md:h-12 font-15px md:font-15px"
 									variant="formButton"
 								>
-									Log In
+									{isLoggingIn ? 'Signing in…' : 'Log In'}
 								</Button>
 							</div>
 						</div>

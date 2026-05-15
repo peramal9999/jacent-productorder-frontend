@@ -115,7 +115,7 @@ export default function OrdersContent() {
                         {orders.length} order{orders.length === 1 ? '' : 's'}
                     </span>
                 </div>
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                     <label htmlFor="quarter-filter" className="text-sm text-gray-500">
                         Show:
                     </label>
@@ -134,7 +134,7 @@ export default function OrdersContent() {
                             </option>
                         ))}
                     </select>
-                </div>
+                </div> */}
             </div>
 
             {visibleOrders.length === 0 ? (

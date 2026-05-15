@@ -64,13 +64,11 @@ axiosInstance.interceptors.response.use(
             removeSecureCookie(AUTH_TOKEN_COOKIE, { path: '/' });
             try {
                 // Lazy imports to avoid circular module deps with the store.
-                const [{ store }, { logout }, { useUIStore }] = await Promise.all([
+                const [{ store }, { clearClientAuthState }] = await Promise.all([
                     import('@/store/store'),
-                    import('@/store/authSlice'),
-                    import('@/stores/useUIStore'),
+                    import('@/store/auth-cleanup'),
                 ]);
-                store.dispatch(logout());
-                useUIStore.getState().unauthorize();
+                clearClientAuthState(store.dispatch);
             } catch {
                 // Non-fatal — cookie removal already happened above.
             }
