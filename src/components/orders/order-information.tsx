@@ -1,11 +1,13 @@
 'use client';
 
 import cn from 'classnames';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import Link from '@/components/shared/link';
 import { colorMap } from '@/data/color-settings';
 import { usePanel } from '@/hooks/use-panel';
-import { useGetOrderByIdQuery, type Order } from '@/store/ordersApi';
+import { useGetOrderByIdQuery } from '@/store/ordersApi';
+import { cartApi } from '@/store/cartApi';
+import { useAppDispatch } from '@/store/hooks';
 import { useIsMounted } from '@/utils/use-is-mounted';
 import Loading from '@/components/shared/loading';
 import { ROUTES } from '@/utils/routes';
@@ -13,25 +15,24 @@ import { ROUTES } from '@/utils/routes';
 export default function OrderInformation({ orderId }: { orderId?: string }) {
     const { selectedColor } = usePanel();
     const mounted = useIsMounted();
-    const { data: fetchedOrder, isLoading } = useGetOrderByIdQuery(orderId!, {
+    const dispatch = useAppDispatch();
+    const { data: latestOrder, isLoading } = useGetOrderByIdQuery(orderId!, {
         skip: !orderId,
+        refetchOnMountOrArgChange: true,
     });
 
-    // Fallback to whatever the placeOrder mutation stashed in sessionStorage,
-    // so the confirmation page renders the just-placed order even when the
-    // backend doesn't return an id we can re-fetch.
-    const [stashedOrder, setStashedOrder] = useState<Order | null>(null);
+    // Server clears the cart on a successful order. Reset the local cache
+    // here — after the user has landed on the confirmation page — so the
+    // CheckoutGuard on /checkout doesn't bounce the in-flight navigation to
+    // /cart when items go to zero.
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        try {
-            const raw = sessionStorage.getItem('lastPlacedOrder');
-            if (raw) setStashedOrder(JSON.parse(raw) as Order);
-        } catch {
-            /* ignore malformed sessionStorage */
-        }
-    }, []);
-
-    const latestOrder = fetchedOrder ?? stashedOrder;
+        dispatch(
+            cartApi.util.updateQueryData('getCart', undefined, (draft) => {
+                draft.items = [];
+                draft.total = 0;
+            }),
+        );
+    }, [dispatch]);
 
     if (!mounted || isLoading) return <Loading />;
 
@@ -155,7 +156,7 @@ export default function OrderInformation({ orderId }: { orderId?: string }) {
                                                 )}
                                             </div>
                                             <span className="font-medium text-brand-dark whitespace-nowrap">
-                                                ${(it.price * (it.quantity ?? 0)).toFixed(2)}
+                                                ${Number(it.price ?? 0).toFixed(2)}
                                             </span>
                                         </li>
                                     ))}

@@ -1,6 +1,5 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from '@/services/api/axiosConfig';
-import { cartApi } from './cartApi';
 
 /**
  * Server-side order shape. Fields are kept aligned with the previous local
@@ -202,28 +201,6 @@ export const ordersApi = createApi({
                 return normaliseOrder(response);
             },
             invalidatesTags: [{ type: 'Orders', id: 'LIST' }],
-            async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
-                try {
-                    const { data } = await queryFulfilled;
-                    // Server is expected to clear the cart after placing the
-                    // order — refresh it so the UI reflects the empty state.
-                    dispatch(cartApi.util.invalidateTags(['Cart']));
-                    // Seed the getOrderById cache so the confirmation page
-                    // renders immediately without waiting on (or depending on)
-                    // a separate GET /v1/orders/{id} round-trip.
-                    if (data?.id) {
-                        dispatch(
-                            ordersApi.util.upsertQueryData(
-                                'getOrderById',
-                                data.id,
-                                data,
-                            ),
-                        );
-                    }
-                } catch {
-                    /* RTK Query surfaces the error to the caller */
-                }
-            },
         }),
 
     }),

@@ -12,8 +12,7 @@ import {useIsMounted} from '@/utils/use-is-mounted';
 import {usePlaceOrderMutation} from '@/store/ordersApi';
 import React, {useMemo} from 'react';
 import Loading from "@/components/shared/loading";
-
-const MIN_ORDER_AMOUNT = 250;
+import {MIN_ORDER_AMOUNT} from '@/components/checkout/checkout-guard';
 
 const CheckoutCard: React.FC = () => {
     const router = useRouter();
@@ -24,15 +23,9 @@ const CheckoutCard: React.FC = () => {
         amount: total,
         currencyCode: 'USD',
     });
-    const isBelowMinimum = total < MIN_ORDER_AMOUNT;
-    const amountRemaining = MIN_ORDER_AMOUNT - total;
-    const {price: amountRemainingFormatted} = usePrice({
-        amount: amountRemaining > 0 ? amountRemaining : 0,
-        currencyCode: 'USD',
-    });
 
     async function orderHeader() {
-        if (isEmpty || isBelowMinimum || isPlacing) return;
+        if (isEmpty || isPlacing || total < MIN_ORDER_AMOUNT) return;
         try {
             const placed = await placeOrder({
                 items: items.map((i) => ({
@@ -41,20 +34,6 @@ const CheckoutCard: React.FC = () => {
                 })),
                 total,
             }).unwrap();
-            console.log("placed",placed);
-            // Stash the placed order so the confirmation page can render it
-            // even when the backend doesn't echo back an id we can re-fetch
-            // (or when GET /v1/orders/{id} isn't ready yet).
-            try {
-                if (typeof window !== 'undefined') {
-                    sessionStorage.setItem(
-                        'lastPlacedOrder',
-                        JSON.stringify(placed),
-                    );
-                }
-            } catch {
-                /* sessionStorage may be unavailable — fall back to URL id */
-            }
             router.push(
                 `${ROUTES.ORDER}${placed?.id ? `?orderId=${placed.id}` : ''}` as any,
             );
@@ -112,7 +91,7 @@ const CheckoutCard: React.FC = () => {
                         
                         <Button
                             variant="dark"
-                            disabled={isBelowMinimum || isPlacing}
+                            disabled={isPlacing}
                             className={cn(
                                 'w-full mt-8  uppercase  px-4 py-3 transition-all',
                             )}
@@ -120,11 +99,6 @@ const CheckoutCard: React.FC = () => {
                         >
                             {isPlacing ? 'Placing Order…' : 'Order Now'}
                         </Button>
-                        {isBelowMinimum && (
-                            <p className="mt-3 text-sm text-red-600 text-center">
-                                Minimum order amount is $250. Please add {amountRemainingFormatted} more to place your order.
-                            </p>
-                        )}
                     </>
                 )}
             
