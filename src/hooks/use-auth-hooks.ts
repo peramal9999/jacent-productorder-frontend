@@ -59,13 +59,16 @@ export const useLoginForm = (isPopup: boolean = true) => {
             if (isPopup) {
                 closeModal();
                 formMethods.reset();
+                setIsLoggingIn(false);
                 return;
             }
-            navigate.push(ROUTES.CATEGORY);
             formMethods.reset();
+            // Keep isLoggingIn=true so the success splash stays mounted until
+            // the route transition completes — otherwise the login form
+            // flashes back in for a tick before /category renders.
+            navigate.replace(ROUTES.CATEGORY);
         } catch (err) {
             setLoginError(extractErrorMessage(err));
-        } finally {
             setIsLoggingIn(false);
         }
     };

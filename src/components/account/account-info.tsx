@@ -4,11 +4,10 @@ import Button from '@/components/shared/button';
 import Heading from '@/components/shared/heading';
 import {Controller, useForm} from 'react-hook-form';
 import {UpdateUserType, useUpdateUserMutation,} from '@/services/customer/use-update-customer';
-import { FaCamera } from "react-icons/fa";
+import { User } from "lucide-react";
 import React, { useEffect } from "react";
 
 import Divider from "@/components/shared/divider";
-import Image from "@/components/shared/image";
 import SearchableSelect, {
     SearchableSelectOption,
 } from '@/components/shared/form/searchable-select';
@@ -75,23 +74,11 @@ const AccountInfo: React.FC = () => {
                 <div className="flex flex-col sm:flex-row flex-wrap">
                     <div className="w-full sm:w-1/2">
                         <div className="flex items-center gap-5">
-                            <div className="relative">
-                                <div className={"w-20 h-20"}>
-                                    <Image
-                                        src={"/assets/images/support/3.png"}
-                                        alt={"avatar"}
-                                        width={90}
-                                        height={90}
-                                        className=" rounded-full"
-                                    />
-                                </div>
-
-                                <input id="profile-thumb-input" className="hidden" type="file"/>
-                                <label
-                                    htmlFor="profile-thumb-input"
-                                    className="flex items-center justify-center border-2 rounded-full text-white w-8 h-8 absolute bottom-2 border-white -right-2 bg-gray-500 text-center cursor-pointer">
-                                    <FaCamera/>
-                                </label>
+                            <div
+                                aria-label={`${fullName || email || 'User'} avatar`}
+                                className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"
+                            >
+                                <User className="w-10 h-10" />
                             </div>
 
                             <div className="dashboard__main-content">
